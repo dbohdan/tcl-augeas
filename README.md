@@ -16,7 +16,8 @@ sudo make install [DESTDIR=/custom/path/]
 
 ## API
 
-The commands tcl-augeas provides mirror the [C API of Augeas](http://augeas.net/docs/api.html).
+The commands tcl-augeas provides mirror the
+[C API of Augeas](http://augeas.net/docs/api.html).
 
 * `::augeas::init root ?loadpath? ?flags?`
 * `::augeas::close token`

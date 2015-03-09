@@ -7,20 +7,20 @@
 #include <augeas.h>
 #include <tcl.h>
 
-/* Namespace for the extension. */
+/* Package information. */
 
 #define PACKAGE "augeas"
-#define NS "::" PACKAGE
-
-/* Extension version. */
-
 #define VERSION "0.1"
 
-/* Limit the maximum number of Augeas objects. */
+/* Namespace for the extension. */
+
+#define NS "::" PACKAGE
+
+/* Limit on the maximum number of Augeas objects. */
 
 #define MAX_COUNT 16
 
-/* Command names */
+/* Command names. */
 
 #define INIT "::init"
 #define CLOSE "::close"
@@ -34,9 +34,24 @@
 #define RM "::rm"
 #define MATCH "::match"
 
-/* Error messages */
+/* Error messages. */
 
 #define ERROR_TOKEN "cannot parse token"
+#define ERROR_INTEGER "integer expected"
+#define ERROR_ARGS "wrong # args: should be "
+
+/* Usage. */
+
+#define USAGE_INIT "\"init root ?loadpath? ?flags?\""
+#define USAGE_CLOSE "\"close token\""
+#define USAGE_SAVE "\"save token\""
+#define USAGE_GET "\"get token path\""
+#define USAGE_SET "\"set token path value\""
+#define USAGE_SETM "\"setm token base sub value\""
+#define USAGE_INSERT "\"insert token path label ?before?\""
+#define USAGE_MV "\"mv token src dst\""
+#define USAGE_RM "\"rm token path\""
+#define USAGE_MATCH "\"match token path\""
 
 /* Globals */
 
@@ -49,9 +64,13 @@ int augeas_object_active[MAX_COUNT];
 static int
 parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 {
+    /* Note: since this function is only called from C do not use
+    Tcl_SetObjResult here. */
+
     Tcl_Obj* cmd[2];
     Tcl_Obj* result_obj = NULL;
     int success;
+    int conv_result;
 
     cmd[0] = Tcl_NewStringObj(NS "::parseToken", -1);
     cmd[1] = idobj;
@@ -64,7 +83,12 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
     if (success == TCL_OK) {
         result_obj = Tcl_GetObjResult(interp);
         Tcl_IncrRefCount(result_obj);
-        Tcl_GetIntFromObj(interp, result_obj, id); /* TODO */
+
+        conv_result = Tcl_GetIntFromObj(interp, result_obj, id);
+        if (conv_result != TCL_OK) {
+            return TCL_ERROR;
+        }
+
         (*id)--; /* Tokens start from one while real ids start from zero. */
         Tcl_DecrRefCount(result_obj);
 
@@ -79,7 +103,7 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 }
 
 /*
- *
+ * Initialize an Augeas object.
  * Usage: init root ?loadpath? ?flags?
  * Return value: string token of the form "::augeas::(integer)".
  * Side effects: creates an Augeas object and marks its slot as in use.
@@ -87,42 +111,43 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 static int
 Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    char* root = NULL;
+    char* loadpath = NULL;
+    int flags = 0;
+    augeas *aug;
+    int id = -1;
+    int i;
+    Tcl_Obj * token[1];
+    Tcl_Obj * result;
+
     if ((objc < 2) || (objc > 4)) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"init root ?loadpath? ?flags?\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INIT, -1));
         return TCL_ERROR;
     }
 
-    char* root = Tcl_GetString(objv[1]);
+    root = Tcl_GetString(objv[1]);
 
-    char* loadpath = NULL;
     if (objc >= 3) {
         loadpath = Tcl_GetString(objv[2]);
     }
 
-    int flags = 0;
     if (objc == 4) {
-        Tcl_GetIntFromObj(interp, objv[3], &flags); /* TODO */
+        int conv_result = Tcl_GetIntFromObj(interp, objv[3], &flags);
+        if (conv_result != TCL_OK) {
+            Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_INTEGER, -1));
+            return TCL_ERROR;
+        }
     }
 
-    augeas *aug;
     aug = aug_init(root, loadpath, flags);
 
-    int id = -1;
-    int i;
-    /* Find unused object slot. */
+    /* Find an unused object slot. */
     for (i = 0; i < MAX_COUNT; i++) {
         if (augeas_object_active[id] == 0) {
             id = i;
             break;
         }
     }
-
     if (id == -1) {
         return TCL_ERROR;
     }
@@ -131,9 +156,8 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     augeas_objects[id] = aug;
     augeas_object_active[id] = 1;
 
-    Tcl_Obj * token[1];
     token[0] = Tcl_NewIntObj(id + 1);
-    Tcl_Obj *const result = Tcl_Format(interp, NS "::%d", 1, token);
+    result = Tcl_Format(interp, NS "::%d", 1, token);
 
     Tcl_SetObjResult(interp, result);
 
@@ -141,22 +165,22 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 }
 
 /*
+ * Close an Augeas object.
  * Return value: nothing.
  * Side effects: closes an Augeas object and marks its slot as available.
  */
 static int
 Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+
     if (objc != 2) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("wrong # args: should be \"close token\"", -1)
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_CLOSE, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -173,7 +197,7 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 }
 
 /*
- *
+ * Save the changes made to Augeas nodes to disk.
  * Return value: nothing.
  * Usage: save token
  * Side effects: causes Augeas to write data to disk.
@@ -181,16 +205,15 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+
     if (objc != 2) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("wrong # args: should be \"save token\"", -1)
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SAVE, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
@@ -211,24 +234,23 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+    const char* path;
+    const char* value[255]; /* TODO: Buffer overflow? */
+
     if (objc != 3) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("wrong # args: should be \"get token path\"", -1)
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_GET, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
-
-    const char* path = Tcl_GetString(objv[2]);
-    const char* value[255]; /* TODO: BUFFER OVERFLOW? */
+    path = Tcl_GetString(objv[2]);
 
     int aug_result = aug_get(augeas_objects[id], path, value);
 
@@ -259,37 +281,33 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+    const char* path;
+    const char* value;
+    int aug_result;
+
     if (objc != 4) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"set token path value\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SET, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
+    path = Tcl_GetString(objv[2]);
+    value = Tcl_GetString(objv[3]);
 
-    const char* path = Tcl_GetString(objv[2]);
-    const char* value = Tcl_GetString(objv[3]);
-
-    int aug_result = aug_set(augeas_objects[id], path, value);
+    aug_result = aug_set(augeas_objects[id], path, value);
 
     if (aug_result == 0) {
         return TCL_OK;
     } else if (aug_result == -1) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("multiple nodes match path", -1)
-        );
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj("multiple nodes match path", -1));
 
         return TCL_ERROR;
     } else {
@@ -308,31 +326,32 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
  * Side effects: changes an Augeas object.
  */
 static int
-Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]) {
+Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    int id;
+    int success;
+    const char* base;
+    const char* sub;
+    const char* value;
+    int aug_result;
+
     if (objc != 5) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"setm token base sub value\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SETM, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
 
-    const char* base = Tcl_GetString(objv[2]);
-    const char* sub = Tcl_GetString(objv[3]);
-    const char* value = Tcl_GetString(objv[4]);
+    base = Tcl_GetString(objv[2]);
+    sub = Tcl_GetString(objv[3]);
+    value = Tcl_GetString(objv[4]);
 
-    int aug_result = aug_setm(augeas_objects[id], base, sub, value);
+    aug_result = aug_setm(augeas_objects[id], base, sub, value);
 
     if (aug_result > 0) {
         /* Return the number of nodes changed. */
@@ -344,10 +363,8 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]) 
 
         return TCL_ERROR;
     } else if (aug_result == -1) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("could not set value", -1)
-        );
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj("could not set value", -1));
 
         return TCL_ERROR;
     } else {
@@ -367,31 +384,30 @@ static int
 Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
         int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+    const char* base;
+    const char* label;
+    int before;
+    int aug_result;
+
     if (objc != 5) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"insert token path label before\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INSERT, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
 
-    const char* base = Tcl_GetString(objv[2]);
-    const char* label = Tcl_GetString(objv[3]);
-    int before;
+    base = Tcl_GetString(objv[2]);
+    label = Tcl_GetString(objv[3]);
     Tcl_GetIntFromObj(interp, objv[4], &before); /* TODO */
 
-    int aug_result = aug_insert(augeas_objects[id], base, label, before);
+    aug_result = aug_insert(augeas_objects[id], base, label, before);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -414,28 +430,27 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
 static int
 Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+    const char* src;
+    const char* dst;
+    int aug_result;
+
     if (objc != 4) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"mv token src dst\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_MV, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
-    const char* src = Tcl_GetString(objv[2]);
-    const char* dst = Tcl_GetString(objv[3]);
+    src = Tcl_GetString(objv[2]);
+    dst = Tcl_GetString(objv[3]);
 
-    int aug_result = aug_mv(augeas_objects[id], src, dst);
+    aug_result = aug_mv(augeas_objects[id], src, dst);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -459,28 +474,26 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    int id;
+    int success;
+    const char* path;
+    int aug_result;
+
     if (objc != 3) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"rm token path\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_RM, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
 
-    const char* path = Tcl_GetString(objv[2]);
+    path = Tcl_GetString(objv[2]);
 
-    int aug_result = aug_rm(augeas_objects[id], path);
+    aug_result = aug_rm(augeas_objects[id], path);
 
     if (aug_result > 0) {
         /* Return the number of nodes removed. */
@@ -507,31 +520,30 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
+    Tcl_Obj * list = NULL;
+    int aug_result;
+    int id;
+    int success;
+    const char* path;
+    char** matches = NULL;
+    int i;
+
     if (objc != 3) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj(
-                "wrong # args: should be \"match token path\"",
-                -1
-            )
-        );
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_MATCH, -1));
         return TCL_ERROR;
     }
 
-    int id;
-    int success = parse_id(interp, objv[1], &id);
+    success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
-    const char* path = Tcl_GetString(objv[2]);
-    char** matches = NULL;
+    path = Tcl_GetString(objv[2]);
 
-    int aug_result = aug_match(augeas_objects[id], path, &matches);
+    aug_result = aug_match(augeas_objects[id], path, &matches);
 
-    Tcl_Obj * list = Tcl_NewListObj(0, NULL);
-
+    list = Tcl_NewListObj(0, NULL);
 
     if (aug_result >= 0) {
         /* Return the matched paths. */
@@ -540,10 +552,13 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
          * consider the case when the result is empty. */
 
         if (aug_result > 0) {
-            int i;
             for (i = 0; i < aug_result; i++)
             {
-                Tcl_ListObjAppendElement(interp, list, Tcl_NewStringObj(matches[i], -1));
+                Tcl_ListObjAppendElement(
+                    interp,
+                    list,
+                    Tcl_NewStringObj(matches[i], -1)
+                );
             }
         }
 
@@ -565,6 +580,7 @@ int DLLEXPORT
 Tclaugeas_Init(Tcl_Interp *interp)
 {
     Tcl_Namespace *nsPtr; /* pointer to hold our own new namespace */
+    int i;
 
     if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
@@ -578,7 +594,6 @@ Tclaugeas_Init(Tcl_Interp *interp)
         }
     }
 
-    int i;
     for (i = 0; i < MAX_COUNT; i++) {
         augeas_object_active[i] = 0;
     }

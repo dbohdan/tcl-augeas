@@ -57,16 +57,19 @@
 #define USAGE_RM "\"rm token path\""
 #define USAGE_MATCH "\"match token path\""
 
-/* Globals */
+/* Data types. */
 
-augeas * augeas_objects[MAX_COUNT];
-int augeas_object_active[MAX_COUNT];
+struct augeas_data
+{
+    augeas * object[MAX_COUNT];
+    int active[MAX_COUNT];
+};
 
 /* Functions */
 
 /* Set id to the integer value of the Augeas interpreter token. */
 static int
-parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
+parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 {
     Tcl_Obj* cmd[2];
     Tcl_Obj* result_obj = NULL;
@@ -91,10 +94,10 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
             return TCL_ERROR;
         }
 
-        (*id)--; /* Tokens start from one while real ids start from zero. */
+        (*id)--; /* Tokens start from one while actual ids start from zero. */
         Tcl_DecrRefCount(result_obj);
 
-        if (augeas_object_active[*id] != 1) {
+        if (((struct augeas_data *) cdata)->active[*id] != 1) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj("object not found", -1));
             return TCL_ERROR;
         }
@@ -146,7 +149,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     /* Find an unused object slot. */
     for (i = 0; i < MAX_COUNT; i++) {
-        if (augeas_object_active[id] == 0) {
+        if (((struct augeas_data *) cdata)->active[i] == 0) {
             id = i;
             break;
         }
@@ -155,8 +158,8 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    augeas_objects[id] = aug;
-    augeas_object_active[id] = 1;
+    ((struct augeas_data *) cdata)->object[id] = aug;
+    ((struct augeas_data *) cdata)->active[id] = 1;
 
     token[0] = Tcl_NewIntObj(id + 1);
     result = Tcl_Format(interp, NS "::%d", 1, token);
@@ -182,14 +185,14 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
 
-    if (augeas_object_active[id] == 1) {
-        aug_close(augeas_objects[id]);
-        augeas_object_active[id] = 0;
+    if (((struct augeas_data *) cdata)->active[id] == 1) {
+        aug_close(((struct augeas_data *) cdata)->object[id]);
+        ((struct augeas_data *) cdata)->active[id] = 0;
 
         return TCL_OK;
     } else {
@@ -216,12 +219,12 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
 
-    aug_save(augeas_objects[id]);
+    aug_save(((struct augeas_data *) cdata)->object[id]);
 
     return TCL_OK;
 }
@@ -246,14 +249,14 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
 
     path = Tcl_GetString(objv[2]);
 
-    int aug_result = aug_get(augeas_objects[id], path, &value);
+    int aug_result = aug_get(((struct augeas_data *) cdata)->object[id], path, &value);
 
     if (aug_result == 1) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(value, -1));
@@ -291,7 +294,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -299,7 +302,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     path = Tcl_GetString(objv[2]);
     value = Tcl_GetString(objv[3]);
 
-    aug_result = aug_set(augeas_objects[id], path, value);
+    aug_result = aug_set(((struct augeas_data *) cdata)->object[id], path, value);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -338,7 +341,7 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -348,7 +351,7 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     sub = Tcl_GetString(objv[3]);
     value = Tcl_GetString(objv[4]);
 
-    aug_result = aug_setm(augeas_objects[id], base, sub, value);
+    aug_result = aug_setm(((struct augeas_data *) cdata)->object[id], base, sub, value);
 
     if (aug_result > 0) {
         /* Return the number of nodes changed. */
@@ -394,7 +397,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -408,7 +411,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
         return TCL_ERROR;
     }
 
-    aug_result = aug_insert(augeas_objects[id], base, label, before);
+    aug_result = aug_insert(((struct augeas_data *) cdata)->object[id], base, label, before);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -442,7 +445,7 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -450,7 +453,7 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     src = Tcl_GetString(objv[2]);
     dst = Tcl_GetString(objv[3]);
 
-    aug_result = aug_mv(augeas_objects[id], src, dst);
+    aug_result = aug_mv(((struct augeas_data *) cdata)->object[id], src, dst);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -485,7 +488,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
@@ -493,7 +496,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     path = Tcl_GetString(objv[2]);
 
-    aug_result = aug_rm(augeas_objects[id], path);
+    aug_result = aug_rm(((struct augeas_data *) cdata)->object[id], path);
 
     if (aug_result > 0) {
         /* Return the number of nodes removed. */
@@ -533,14 +536,14 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    success = parse_id(interp, objv[1], &id);
+    success = parse_id(cdata, interp, objv[1], &id);
     if (success != TCL_OK) {
         return success;
     }
 
     path = Tcl_GetString(objv[2]);
 
-    aug_result = aug_match(augeas_objects[id], path, &matches);
+    aug_result = aug_match(((struct augeas_data *) cdata)->object[id], path, &matches);
 
     list = Tcl_NewListObj(0, NULL);
 
@@ -577,8 +580,10 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 int DLLEXPORT
 Tclaugeas_Init(Tcl_Interp *interp)
 {
-    Tcl_Namespace *nsPtr; /* pointer to hold our own new namespace */
+    Tcl_Namespace *nsPtr;
     int i;
+    struct augeas_data * a;
+    a = ckalloc(sizeof(struct augeas_data));
 
     if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
@@ -593,19 +598,19 @@ Tclaugeas_Init(Tcl_Interp *interp)
     }
 
     for (i = 0; i < MAX_COUNT; i++) {
-        augeas_object_active[i] = 0;
+        a->active[i] = 0;
     }
 
-    Tcl_CreateObjCommand(interp, NS INIT, Init_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS CLOSE, Close_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS SAVE, Save_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, NULL, NULL);
-    Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, NULL, NULL);
+    Tcl_CreateObjCommand(interp, NS INIT, Init_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS CLOSE, Close_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS SAVE, Save_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, a, NULL);
     Tcl_PkgProvide(interp, PACKAGE, VERSION);
 
     Tcl_Eval(interp, "proc " NS "::parseToken token { \

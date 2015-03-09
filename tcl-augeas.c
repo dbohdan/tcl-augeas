@@ -42,6 +42,7 @@
 #define ERROR_PATH "invalid path"
 #define ERROR_NO_NODES "no nodes match path"
 #define ERROR_UNKNOWN "unknown error"
+#define ERROR_MULTIPLE "multiple nodes match path"
 
 /* Usage. */
 
@@ -154,7 +155,6 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    augeas_objects[id] = ckalloc(sizeof(augeas *));
     augeas_objects[id] = aug;
     augeas_object_active[id] = 1;
 
@@ -239,7 +239,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int id;
     int success;
     const char* path;
-    const char* value[255]; /* TODO: Buffer overflow? */
+    const char* value; /* TODO: Buffer overflow? */
 
     if (objc != 3) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_GET, -1));
@@ -253,17 +253,15 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     path = Tcl_GetString(objv[2]);
 
-    int aug_result = aug_get(augeas_objects[id], path, value);
+    int aug_result = aug_get(augeas_objects[id], path, &value);
 
     if (aug_result == 1) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(*value, -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(value, -1));
 
         return TCL_OK;
     } else if (aug_result < 0) {
-        Tcl_SetObjResult(
-            interp,
-            Tcl_NewStringObj("multiple nodes match path", -1)
-        );
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj(ERROR_MULTIPLE, -1));
 
         return TCL_ERROR;
     } else {
@@ -307,7 +305,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_OK;
     } else if (aug_result == -1) {
         Tcl_SetObjResult(interp,
-                Tcl_NewStringObj("multiple nodes match path", -1));
+                Tcl_NewStringObj(ERROR_MULTIPLE, -1));
 
         return TCL_ERROR;
     } else {
@@ -387,6 +385,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
     int success;
     const char* base;
     const char* label;
+    int conv_result;
     int before;
     int aug_result;
 
@@ -403,7 +402,11 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
 
     base = Tcl_GetString(objv[2]);
     label = Tcl_GetString(objv[3]);
-    Tcl_GetIntFromObj(interp, objv[4], &before); /* TODO */
+    conv_result = Tcl_GetIntFromObj(interp, objv[4], &before);
+    if (conv_result != TCL_OK) {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
+        return TCL_ERROR;
+    }
 
     aug_result = aug_insert(augeas_objects[id], base, label, before);
 
@@ -551,11 +554,9 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         if (aug_result > 0) {
             for (i = 0; i < aug_result; i++)
             {
-                Tcl_ListObjAppendElement(
-                    interp,
-                    list,
-                    Tcl_NewStringObj(matches[i], -1)
-                );
+                Tcl_ListObjAppendElement(interp, list,
+                        Tcl_NewStringObj(matches[i], -1));
+                free(matches[i]);
             }
         }
 

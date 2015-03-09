@@ -36,9 +36,12 @@
 
 /* Error messages. */
 
-#define ERROR_TOKEN "cannot parse token"
+#define ERROR_TOKEN "can't parse token"
 #define ERROR_INTEGER "integer expected"
 #define ERROR_ARGS "wrong # args: should be "
+#define ERROR_PATH "invalid path"
+#define ERROR_NO_NODES "no nodes match path"
+#define ERROR_UNKNOWN "unknown error"
 
 /* Usage. */
 
@@ -64,9 +67,6 @@ int augeas_object_active[MAX_COUNT];
 static int
 parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 {
-    /* Note: since this function is only called from C do not use
-    Tcl_SetObjResult here. */
-
     Tcl_Obj* cmd[2];
     Tcl_Obj* result_obj = NULL;
     int success;
@@ -86,6 +86,7 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
 
         conv_result = Tcl_GetIntFromObj(interp, result_obj, id);
         if (conv_result != TCL_OK) {
+            Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
             return TCL_ERROR;
         }
 
@@ -93,6 +94,7 @@ parse_id(Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
         Tcl_DecrRefCount(result_obj);
 
         if (augeas_object_active[*id] != 1) {
+            Tcl_SetObjResult(interp, Tcl_NewStringObj("object not found", -1));
             return TCL_ERROR;
         }
 
@@ -152,7 +154,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    augeas_objects[id] = malloc(sizeof(augeas *));
+    augeas_objects[id] = ckalloc(sizeof(augeas *));
     augeas_objects[id] = aug;
     augeas_object_active[id] = 1;
 
@@ -191,7 +193,8 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_OK;
     } else {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("cannot close", -1));
+        Tcl_SetObjResult(interp,
+                    Tcl_NewStringObj("can't close augeas", -1));
         return TCL_ERROR;
     }
 }
@@ -215,7 +218,6 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -246,7 +248,6 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -294,7 +295,6 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -311,7 +311,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_ERROR;
     } else {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("unknown error", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_UNKNOWN, -1));
 
         return TCL_ERROR;
     }
@@ -342,7 +342,6 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -359,16 +358,16 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         Tcl_SetObjResult(interp, Tcl_NewIntObj(aug_result));
         return TCL_OK;
     } else if (aug_result == 0) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("no nodes matched path", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_NO_NODES, -1));
 
         return TCL_ERROR;
     } else if (aug_result == -1) {
         Tcl_SetObjResult(interp,
-                Tcl_NewStringObj("could not set value", -1));
+                Tcl_NewStringObj("can't set value", -1));
 
         return TCL_ERROR;
     } else {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("unknown error", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_UNKNOWN, -1));
 
         return TCL_ERROR;
     }
@@ -398,7 +397,6 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -412,7 +410,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
     if (aug_result == 0) {
         return TCL_OK;
     } else {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("insert failed", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj("can't insert node", -1));
 
         return TCL_ERROR;
     }
@@ -443,7 +441,6 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -455,11 +452,12 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     if (aug_result == 0) {
         return TCL_OK;
     } else if (aug_result == 1) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("move failed", -1));
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj("can't move subtree", -1));
 
         return TCL_ERROR;
     } else { /* aug_result < 0 */
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("unknown error", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_UNKNOWN, -1));
 
         return TCL_ERROR;
     }
@@ -486,7 +484,6 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -501,7 +498,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_OK;
     } else if (aug_result == 0) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("no nodes matched path", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_NO_NODES, -1));
 
         return TCL_ERROR;
     } else { /* aug_result < 0 */
@@ -535,7 +532,6 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     success = parse_id(interp, objv[1], &id);
     if (success != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
         return success;
     }
 
@@ -548,8 +544,9 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     if (aug_result >= 0) {
         /* Return the matched paths. */
 
-        /* Different from Mv_Cmd and Rm_Cmd since we expect the user to
-         * consider the case when the result is empty. */
+        /* This is different from Setm_Cmd and Rm_Cmd in we expect the user
+         * to consider the case when the result is empty as part of normal
+         * operation. Hence, no error is generated. */
 
         if (aug_result > 0) {
             for (i = 0; i < aug_result; i++)
@@ -566,7 +563,7 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_OK;
     } else { /* aug_result < 0 */
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("invalid path", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_PATH, -1));
 
         return TCL_ERROR;
     }
@@ -612,7 +609,7 @@ Tclaugeas_Init(Tcl_Interp *interp)
 
     Tcl_Eval(interp, "proc " NS "::parseToken token { \
         if {![regexp {^(?:" NS "::)?([1-9]+[0-9]*)$} $token _ id]} { \
-            error {cannot parse token}\n\
+            error {" ERROR_TOKEN "}\n\
         } \n\
         return $id \n\
     }");

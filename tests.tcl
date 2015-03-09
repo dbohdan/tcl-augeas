@@ -69,6 +69,16 @@ namespace eval ::augeas::tests {
         return $error
     } -result 1
 
+    tcltest::test test7 {object id reuse} -setup $setup -body {
+        set ids {}
+        for {set i 0} {$i < 3} {incr i} {
+            set id [::augeas::init [file join [pwd] test]]
+            lappend ids $id
+            ::augeas::close $id
+        }
+        return [llength [lsort -unique $ids]]
+    } -result 1
+
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {
         exit 1

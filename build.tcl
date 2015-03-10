@@ -10,7 +10,7 @@ namespace eval ::buildsys {
     variable path
     variable cc cc
     variable packages [list augeas]
-    variable flags [list -Wall -fPIC]
+    variable flags [list -Wall -Werror -fPIC]
     variable includes [list -I[::tcl::pkgconfig get includedir,runtime]]
     variable libs [list -L[::tcl::pkgconfig get libdir,runtime]]
 

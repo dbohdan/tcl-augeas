@@ -57,13 +57,13 @@
 #define USAGE_RM "\"rm token path\""
 #define USAGE_MATCH "\"match token path\""
 
-#define AUG_CDATA ((struct augeas_data *) cdata)
+#define AUG_CDATA ((struct AugeasData *) cdata)
 
 /* Data types. */
 
-struct augeas_data
+struct AugeasData
 {
-    augeas * object[MAX_COUNT];
+    augeas *object[MAX_COUNT];
     int active[MAX_COUNT];
 };
 
@@ -71,7 +71,7 @@ struct augeas_data
 
 /* Set id to the integer value of the Augeas interpreter token. */
 static int
-parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
+parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
 {
     Tcl_Obj* cmd[2];
     Tcl_Obj* result_obj = NULL;
@@ -125,8 +125,8 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     augeas *aug;
     int id = -1;
     int i;
-    Tcl_Obj * token[1];
-    Tcl_Obj * result;
+    Tcl_Obj *token[1];
+    Tcl_Obj *result;
 
     if ((objc < 2) || (objc > 4)) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INIT, -1));
@@ -537,12 +537,12 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 static int
 Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    Tcl_Obj * list = NULL;
+    Tcl_Obj *list = NULL;
     int aug_result;
     int id;
     int success;
-    const char* path;
-    char** matches = NULL;
+    const char *path;
+    char **matches = NULL;
     int i;
 
     if (objc != 3) {
@@ -596,8 +596,8 @@ Tclaugeas_Init(Tcl_Interp *interp)
 {
     Tcl_Namespace *nsPtr;
     int i;
-    struct augeas_data * a;
-    a = (struct augeas_data *) ckalloc(sizeof(struct augeas_data));
+    struct AugeasData *augeas_data;
+    augeas_data = (struct AugeasData *) ckalloc(sizeof(struct AugeasData));
 
     if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;
@@ -612,19 +612,19 @@ Tclaugeas_Init(Tcl_Interp *interp)
     }
 
     for (i = 0; i < MAX_COUNT; i++) {
-        a->active[i] = 0;
+        augeas_data->active[i] = 0;
     }
 
-    Tcl_CreateObjCommand(interp, NS INIT, Init_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS CLOSE, Close_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS SAVE, Save_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, a, NULL);
-    Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, a, NULL);
+    Tcl_CreateObjCommand(interp, NS INIT, Init_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS CLOSE, Close_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS SAVE, Save_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, augeas_data, NULL);
     Tcl_PkgProvide(interp, PACKAGE, VERSION);
 
     Tcl_Eval(interp, "proc " NS "::parseToken token { \

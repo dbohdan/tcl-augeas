@@ -58,8 +58,6 @@
 #define USAGE_RM "\"rm token path\""
 #define USAGE_MATCH "\"match token path\""
 
-#define AUG_CDATA ((struct AugeasData *) cdata)
-
 /* Data types. */
 
 struct AugeasData
@@ -67,6 +65,8 @@ struct AugeasData
     augeas *object[MAX_COUNT];
     int active[MAX_COUNT];
 };
+
+#define AUG_CDATA ((struct AugeasData *) cdata)
 
 /* Functions */
 
@@ -125,7 +125,6 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     char* root = NULL;
     char* loadpath = NULL;
     int flags = 0;
-    augeas *aug;
     int id = -1;
     int i;
     Tcl_Obj *token[1];
@@ -150,8 +149,6 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         }
     }
 
-    aug = aug_init(root, loadpath, flags);
-
     /* Find an unused object slot. */
     for (i = 0; i < MAX_COUNT; i++) {
         if (AUG_CDATA->active[i] == 0) {
@@ -160,10 +157,12 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         }
     }
     if (id == -1) {
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj("out of interpreter slots", -1));
         return TCL_ERROR;
     }
 
-    AUG_CDATA->object[id] = aug;
+    AUG_CDATA->object[id] = aug_init(root, loadpath, flags);
     AUG_CDATA->active[id] = 1;
 
     token[0] = Tcl_NewIntObj(id + 1);

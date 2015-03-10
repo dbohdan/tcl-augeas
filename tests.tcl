@@ -160,6 +160,29 @@ namespace eval ::augeas::tests {
         return $result
     } -result {/usr/local/bin/backup 9,17}
 
+    # This test takes a long time to complete.
+    tcltest::test test10 {Try to run out of interpreters} \
+            -setup $setup \
+            -body {
+        set error 0
+        set ids {}
+        while {!$error} {
+            set error [catch {
+                lappend ids [::augeas::init [file join [pwd] test]]
+            }]
+            puts $ids
+            # A safeguard to avoid eating up all the available RAM.
+            if {[llength $ids] > 20} {
+                set error 1
+            }
+        }
+        foreach id $ids {
+            ::augeas::close $id
+        }
+
+        return [llength $ids]
+    } -result 16
+
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {
         exit 1

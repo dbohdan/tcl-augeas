@@ -15,7 +15,7 @@ tcl-augeas.
 
 ```sh
 # Automatically install the dependencies on Ubuntu/Debian, Fedora/CentOS and
-# FreeBSD 10+ using `apt-get`, `yum` and `pkg` respectively.
+# FreeBSD 10+ using apt-get, yum and pkg respectively.
 sudo make deps
 # Build and test.
 make test

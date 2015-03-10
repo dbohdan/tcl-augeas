@@ -11,10 +11,12 @@ namespace eval ::augeas::tests {
     variable setup [list apply {{path} {
         lappend ::auto_path $path
         package require augeas
+        cd $path
     }} $path]
 
     tcltest::test test1 {init, get value and close Augeas} -setup $setup -body {
         set id [::augeas::init [file join [pwd] test] "" 0]
+        puts ---[pwd]
         set value [::augeas::get $id "/files/etc/wgetrc/quota"]
         ::augeas::close $id
         return $value

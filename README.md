@@ -1,5 +1,7 @@
 # tcl-augeas
 
+[![Build Status](https://travis-ci.org/dbohdan/tcl-augeas.svg)](https://travis-ci.org/dbohdan/tcl-augeas)
+
 This Tcl C extension provides bindings for [Augeas](http://augeas.net/), a
 configuration editing tool.
 

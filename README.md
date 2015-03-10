@@ -7,10 +7,11 @@ configuration editing tool.
 
 ## Installation
 
-tcl-augeas has been tested to build on Ubuntu 14.04, Fedora 21, CentOS 6.5 and
-FreeBSD 10.1.
+tcl-augeas has been tested to build on Ubuntu 12.04, Ubuntu 14.04, Fedora 21,
+CentOS 6.5 and FreeBSD 10.1 with Augeas 0.10 through 1.3.
 
-You will need Tcl 8.5 or 8.6 already installed on your system.
+You will need Tcl 8.5 or 8.6 already installed on your system to build
+tcl-augeas.
 
 ```sh
 # Automatically install the dependencies on Ubuntu/Debian, Fedora/CentOS and
@@ -30,6 +31,7 @@ The commands tcl-augeas provides mirror the
 * `::augeas::init root ?loadpath? ?flags?` -> token
 * `::augeas::close token` -> (nothing)
 * `::augeas::save token` -> (nothing)
+* `::augeas::load token` -> (nothing)
 * `::augeas::get token path` -> value
 * `::augeas::set token path value` ->  (nothing)
 * `::augeas::setm token base sub value` -> number of nodes changed

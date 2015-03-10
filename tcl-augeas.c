@@ -25,7 +25,7 @@
 #define INIT "::init"
 #define CLOSE "::close"
 #define SAVE "::save"
-
+#define LOAD "::load"
 #define GET "::get"
 #define SET "::set"
 #define SETM "::setm"
@@ -49,6 +49,7 @@
 #define USAGE_INIT "\"init root ?loadpath? ?flags?\""
 #define USAGE_CLOSE "\"close token\""
 #define USAGE_SAVE "\"save token\""
+#define USAGE_LOAD "\"load token\""
 #define USAGE_GET "\"get token path\""
 #define USAGE_SET "\"set token path value\""
 #define USAGE_SETM "\"setm token base sub value\""
@@ -174,6 +175,40 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 }
 
 /*
+ * Reloads an Augeas object.
+ * Return value: nothing.
+ * Side effects: modifies an Augeas object.
+ */
+static int
+Load_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    int id;
+    int success;
+    int aug_result;
+
+    if (objc != 2) {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_LOAD, -1));
+        return TCL_ERROR;
+    }
+
+    success = parse_id(cdata, interp, objv[1], &id);
+    if (success != TCL_OK) {
+        return success;
+    }
+
+    aug_result = aug_load(AUG_CDATA->object[id]);
+
+    if (aug_result == 0) {
+        return TCL_OK;
+    } else {
+        Tcl_SetObjResult(interp,
+                    Tcl_NewStringObj("can't load", -1));
+        return TCL_ERROR;
+    }
+}
+
+
+/*
  * Close an Augeas object.
  * Return value: nothing.
  * Side effects: closes an Augeas object and marks its slot as available.
@@ -194,16 +229,10 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return success;
     }
 
-    if (AUG_CDATA->active[id] == 1) {
-        aug_close(AUG_CDATA->object[id]);
-        AUG_CDATA->active[id] = 0;
+    aug_close(AUG_CDATA->object[id]);
+    AUG_CDATA->active[id] = 0;
 
-        return TCL_OK;
-    } else {
-        Tcl_SetObjResult(interp,
-                    Tcl_NewStringObj("can't close augeas", -1));
-        return TCL_ERROR;
-    }
+    return TCL_OK;
 }
 
 /*
@@ -620,6 +649,7 @@ Tclaugeas_Init(Tcl_Interp *interp)
     Tcl_CreateObjCommand(interp, NS INIT, Init_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS CLOSE, Close_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS SAVE, Save_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS LOAD, Load_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, augeas_data, NULL);

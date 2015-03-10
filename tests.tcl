@@ -14,15 +14,35 @@ namespace eval ::augeas::tests {
         cd $path
     }} $path]
 
-    tcltest::test test1 {init, get value and close Augeas} -setup $setup -body {
+    proc simplevars-available? {} {
+        variable setup
+        eval $setup
+        set id [::augeas::init /]
+        set result [expr {
+            ![catch {::augeas::get $id /augeas/load/Simplevars/lens}]
+        }]
+        ::augeas::close $id
+        return $result
+    }
+
+    # Some tests require the Augeas lens Simplevars to be available, which isn't
+    # there in the older versions, e.g., on Ubuntu 12.04.
+    tcltest::testConstraint simplevarsAvailable [simplevars-available?]
+
+    tcltest::test test1 {init, get value and close Augeas} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test] "" 0]
-        puts ---[pwd]
         set value [::augeas::get $id "/files/etc/wgetrc/quota"]
         ::augeas::close $id
         return $value
     } -result inf
 
-    tcltest::test test2 {init, set value and close Augeas} -setup $setup -body {
+    tcltest::test test2 {init, set value and close Augeas} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test] "" 0]
         ::augeas::set $id "/files/etc/wgetrc/quota" inf
         ::augeas::save $id
@@ -30,7 +50,10 @@ namespace eval ::augeas::tests {
         return
     }
 
-    tcltest::test test3 {setm values} -setup $setup -body {
+    tcltest::test test3 {setm values} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test]]
         ::augeas::setm $id "/files/etc/wgetrc" * 20
         set quota [::augeas::get $id "/files/etc/wgetrc/quota"]
@@ -45,7 +68,10 @@ namespace eval ::augeas::tests {
         return [list $quota $tries]
     } -result [list 20 20]
 
-    tcltest::test test4 {insert, mv and rm} -setup $setup -body {
+    tcltest::test test4 {insert, mv and rm} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test]]
         ::augeas::insert $id "/files/etc/wgetrc/quota" foo 0
         ::augeas::mv $id "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
@@ -60,7 +86,10 @@ namespace eval ::augeas::tests {
         return
     }
 
-    tcltest::test test5 {match} -setup $setup -body {
+    tcltest::test test5 {match} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test]]
         set result [::augeas::match $id "/files/etc/wgetrc/*"]
         ::augeas::close $id
@@ -71,14 +100,18 @@ namespace eval ::augeas::tests {
             /files/etc/wgetrc/tries \
     ]
 
-    tcltest::test test6 {double close} -setup $setup -body {
+    tcltest::test test6 {double close} \
+            -setup $setup \
+            -body {
         set id [::augeas::init [file join [pwd] test]]
         ::augeas::close $id
         set error [catch {::augeas::close $id}]
         return $error
     } -result 1
 
-    tcltest::test test7 {object id reuse} -setup $setup -body {
+    tcltest::test test7 {object id reuse} \
+            -setup $setup \
+            -body {
         set ids {}
         for {set i 0} {$i < 3} {incr i} {
             set id [::augeas::init [file join [pwd] test]]
@@ -87,6 +120,45 @@ namespace eval ::augeas::tests {
         }
         return [llength [lsort -unique $ids]]
     } -result 1
+
+    tcltest::test test8 {load} \
+            -setup $setup \
+            -body {
+        set id [::augeas::init [file join [pwd] test]]
+        ::augeas::set $id /augeas/load/IniFile/lens Puppet.lns
+        ::augeas::set $id /augeas/load/IniFile/incl /etc/test.ini
+        ::augeas::load $id
+        set result [::augeas::get $id /files/etc/test.ini/section/key]
+        ::augeas::close $id
+
+        return $result
+    } -result val
+
+    tcltest::test test9 {Httpd lens} \
+            -setup $setup \
+            -body {
+        set id [::augeas::init [file join [pwd] test]]
+        set basePath {/files/etc/httpd/httpd.conf/directive[2]}
+        set result {}
+        lappend result [::augeas::get $id $basePath]
+        lappend result [::augeas::get $id $basePath/arg]
+        ::augeas::close $id
+
+        return $result
+    } -result {Listen 8080}
+
+    tcltest::test test9 {Cron lens} \
+            -setup $setup \
+            -body {
+        set id [::augeas::init [file join [pwd] test]]
+        set basePath {/files/etc/crontab/entry[1]}
+        set result {}
+        lappend result [::augeas::get $id $basePath]
+        lappend result [::augeas::get $id $basePath/time/hour]
+        ::augeas::close $id
+
+        return $result
+    } -result {/usr/local/bin/backup 9,17}
 
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {

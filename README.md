@@ -7,10 +7,13 @@ configuration editing tool.
 
 ## Installation
 
-tcl-augeas has been tested to build on Ubuntu 14.04, Fedora 21 and FreeBSD 10.1.
+tcl-augeas has been tested to build on Ubuntu 14.04, Fedora 21, CentOS 6.5 and
+FreeBSD 10.1.
+
+You will need Tcl 8.5 or 8.6 already installed on your system.
 
 ```sh
-# Automatically install the dependencies on Debian/Ubuntu, Fedora and
+# Automatically install the dependencies on Ubuntu/Debian, Fedora/CentOS and
 # FreeBSD 10+ using `apt-get`, `yum` and `pkg` respectively.
 sudo make deps
 # Build and test.

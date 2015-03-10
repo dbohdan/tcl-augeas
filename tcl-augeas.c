@@ -597,7 +597,7 @@ Tclaugeas_Init(Tcl_Interp *interp)
     Tcl_Namespace *nsPtr;
     int i;
     struct augeas_data * a;
-    a = ckalloc(sizeof(struct augeas_data));
+    a = (struct augeas_data *) ckalloc(sizeof(struct augeas_data));
 
     if (Tcl_InitStubs(interp, TCL_VERSION, 0) == NULL) {
         return TCL_ERROR;

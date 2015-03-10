@@ -57,6 +57,8 @@
 #define USAGE_RM "\"rm token path\""
 #define USAGE_MATCH "\"match token path\""
 
+#define AUG_CDATA ((struct augeas_data *) cdata)
+
 /* Data types. */
 
 struct augeas_data
@@ -97,7 +99,7 @@ parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int * id)
         (*id)--; /* Tokens start from one while actual ids start from zero. */
         Tcl_DecrRefCount(result_obj);
 
-        if (((struct augeas_data *) cdata)->active[*id] != 1) {
+        if (AUG_CDATA->active[*id] != 1) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj("object not found", -1));
             return TCL_ERROR;
         }
@@ -149,7 +151,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     /* Find an unused object slot. */
     for (i = 0; i < MAX_COUNT; i++) {
-        if (((struct augeas_data *) cdata)->active[i] == 0) {
+        if (AUG_CDATA->active[i] == 0) {
             id = i;
             break;
         }
@@ -158,8 +160,8 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    ((struct augeas_data *) cdata)->object[id] = aug;
-    ((struct augeas_data *) cdata)->active[id] = 1;
+    AUG_CDATA->object[id] = aug;
+    AUG_CDATA->active[id] = 1;
 
     token[0] = Tcl_NewIntObj(id + 1);
     result = Tcl_Format(interp, NS "::%d", 1, token);
@@ -190,9 +192,9 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return success;
     }
 
-    if (((struct augeas_data *) cdata)->active[id] == 1) {
-        aug_close(((struct augeas_data *) cdata)->object[id]);
-        ((struct augeas_data *) cdata)->active[id] = 0;
+    if (AUG_CDATA->active[id] == 1) {
+        aug_close(AUG_CDATA->object[id]);
+        AUG_CDATA->active[id] = 0;
 
         return TCL_OK;
     } else {
@@ -213,6 +215,7 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     int id;
     int success;
+    int aug_result;
 
     if (objc != 2) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SAVE, -1));
@@ -224,9 +227,15 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return success;
     }
 
-    aug_save(((struct augeas_data *) cdata)->object[id]);
+    aug_result = aug_save(AUG_CDATA->object[id]);
 
-    return TCL_OK;
+    if (aug_result == 0) {
+        return TCL_OK;
+    } else {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj("can't save", -1));
+
+        return TCL_ERROR;
+    }
 }
 
 
@@ -256,7 +265,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     path = Tcl_GetString(objv[2]);
 
-    int aug_result = aug_get(((struct augeas_data *) cdata)->object[id], path, &value);
+    int aug_result = aug_get(AUG_CDATA->object[id], path, &value);
 
     if (aug_result == 1) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(value, -1));
@@ -302,7 +311,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     path = Tcl_GetString(objv[2]);
     value = Tcl_GetString(objv[3]);
 
-    aug_result = aug_set(((struct augeas_data *) cdata)->object[id], path, value);
+    aug_result = aug_set(AUG_CDATA->object[id], path, value);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -351,7 +360,7 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     sub = Tcl_GetString(objv[3]);
     value = Tcl_GetString(objv[4]);
 
-    aug_result = aug_setm(((struct augeas_data *) cdata)->object[id], base, sub, value);
+    aug_result = aug_setm(AUG_CDATA->object[id], base, sub, value);
 
     if (aug_result > 0) {
         /* Return the number of nodes changed. */
@@ -376,7 +385,7 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
 /*
  * Insert a sibling node of path with label label before or after path.
- * Usage: insert token path label before
+ * Usage: insert token path label ?before?
  * Return value: nothing.
  * Side effects: changes an Augeas object.
  */
@@ -392,7 +401,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
     int before;
     int aug_result;
 
-    if (objc != 5) {
+    if ((objc < 4) || (objc > 5)) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INSERT, -1));
         return TCL_ERROR;
     }
@@ -405,13 +414,18 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
 
     base = Tcl_GetString(objv[2]);
     label = Tcl_GetString(objv[3]);
-    conv_result = Tcl_GetIntFromObj(interp, objv[4], &before);
-    if (conv_result != TCL_OK) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
-        return TCL_ERROR;
+
+    if (objc == 4) {
+        before = 0;
+    } else {
+        conv_result = Tcl_GetIntFromObj(interp, objv[4], &before);
+        if (conv_result != TCL_OK) {
+            Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
+            return TCL_ERROR;
+        }
     }
 
-    aug_result = aug_insert(((struct augeas_data *) cdata)->object[id], base, label, before);
+    aug_result = aug_insert(AUG_CDATA->object[id], base, label, before);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -453,7 +467,7 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     src = Tcl_GetString(objv[2]);
     dst = Tcl_GetString(objv[3]);
 
-    aug_result = aug_mv(((struct augeas_data *) cdata)->object[id], src, dst);
+    aug_result = aug_mv(AUG_CDATA->object[id], src, dst);
 
     if (aug_result == 0) {
         return TCL_OK;
@@ -496,7 +510,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     path = Tcl_GetString(objv[2]);
 
-    aug_result = aug_rm(((struct augeas_data *) cdata)->object[id], path);
+    aug_result = aug_rm(AUG_CDATA->object[id], path);
 
     if (aug_result > 0) {
         /* Return the number of nodes removed. */
@@ -543,7 +557,7 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     path = Tcl_GetString(objv[2]);
 
-    aug_result = aug_match(((struct augeas_data *) cdata)->object[id], path, &matches);
+    aug_result = aug_match(AUG_CDATA->object[id], path, &matches);
 
     list = Tcl_NewListObj(0, NULL);
 

@@ -104,7 +104,9 @@ proc ::buildsys::deps {} {
 
 # Clean up build artifacts.
 proc ::buildsys::clean {} {
+    variable object
     variable output
+    file delete $object
     file delete $output
 }
 

@@ -36,6 +36,7 @@ namespace eval ::augeas::tests {
         ::augeas::save $id
 
         ::augeas::set $id "/files/etc/wgetrc/quota" inf
+        ::augeas::set $id {/files/etc/wgetrc/#comment[1]} Comment
         ::augeas::save $id
 
         ::augeas::close $id
@@ -47,6 +48,12 @@ namespace eval ::augeas::tests {
         ::augeas::insert $id "/files/etc/wgetrc/quota" foo 0
         ::augeas::mv $id "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
         ::augeas::rm $id "/files/etc/wgetrc/bar"
+
+        ::augeas::insert $id "/files/etc/wgetrc/quota" baz
+        ::augeas::insert $id "/files/etc/wgetrc/quota" qux 1
+        ::augeas::rm $id "/files/etc/wgetrc/baz"
+        ::augeas::rm $id "/files/etc/wgetrc/qux"
+
         ::augeas::close $id
         return
     }

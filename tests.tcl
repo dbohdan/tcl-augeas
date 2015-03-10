@@ -28,6 +28,8 @@ namespace eval ::augeas::tests {
     # Some tests require the Augeas lens Simplevars to be available, which isn't
     # there in the older versions, e.g., on Ubuntu 12.04.
     tcltest::testConstraint simplevarsAvailable [simplevars-available?]
+    # Disable memory-hungry tests by default.
+    tcltest::testConstraint lotsaRam 0
 
     tcltest::test test1 {init, get value and close Augeas} \
             -constraints simplevarsAvailable \
@@ -162,6 +164,7 @@ namespace eval ::augeas::tests {
 
     # This test takes a long time to complete.
     tcltest::test test10 {Try to run out of interpreters} \
+            -constraints lotsaRam \
             -setup $setup \
             -body {
         set error 0

@@ -242,7 +242,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int id;
     int success;
     const char* path;
-    const char* value; /* TODO: Buffer overflow? */
+    const char* value;
 
     if (objc != 3) {
         Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_GET, -1));

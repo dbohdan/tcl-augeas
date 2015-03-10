@@ -3,17 +3,21 @@
 # Copyright (C) 2015 Danyil Bohdan.
 # This code is released under the terms of the MIT license. See the file
 # LICENSE for details.
-
 namespace eval ::buildsys {
     namespace export *
     namespace ensemble create
 
     variable path
     variable cc cc
-    variable packages [list tcl augeas]
-    variable flags [list -Wall -shared -fPIC]
+    variable packages [list augeas]
+    variable flags [list -Wall -fPIC]
+    variable includes [list -I[::tcl::pkgconfig get includedir,runtime]]
+    variable libs [list -L[::tcl::pkgconfig get libdir,runtime]]
+
     variable input tcl-augeas.c
+    variable object libtclaugeas.o
     variable output libtclaugeas[info sharedlibextension]
+
     variable installPath /usr/local/lib
 }
 
@@ -30,16 +34,21 @@ proc ::buildsys::build {} {
     variable cc
     variable packages
     variable flags
+    variable includes
+    variable libs
     variable input
+    variable object
     variable output
     variable path
 
     with-path $path {
         foreach package $packages {
-            lappend flags {*}[exec -- pkg-config --cflags --libs $package]
+            lappend includes {*}[exec -- pkg-config --cflags $package]
+            lappend libs {*}[exec -- pkg-config --libs $package]
         }
 
-        exec -- $cc {*}$flags -o $output $input
+        exec -- $cc {*}$flags -c -o $object $input {*}$includes
+        exec -- $cc {*}$flags -o $output $object -shared {*}$libs
     }
 }
 
@@ -50,7 +59,7 @@ proc ::buildsys::detect-os {} {
         if ([file exists /etc/debian_version]) {
             return debian
         } elseif ([file exists /etc/redhat-release]) {
-            return redhatx
+            return redhat
         } else {
             return unknown-linux
         }
@@ -65,13 +74,27 @@ proc ::buildsys::detect-os {} {
 # root.
 proc ::buildsys::deps {} {
     set commands {
-        redhat {yum install -y pkgconfig tcl-devel augeas-devel}
-        debian {apt-get install -y pkg-config tcl-dev libaugeas-dev}
+        redhat
+        {{yum install -y gcc make pkgconfig tcl-devel augeas-devel}}
+
+        debian
+        {{apt-get install -y build-essential pkg-config tcl-dev libaugeas-dev}}
+
+        freebsd
+        {{pkg install tcl86 augeas pkgconf}
+        {ln -s /usr/local/bin/tclsh8.6 /usr/local/bin/tclsh}}
     }
 
     set os [detect-os]
     if {[dict exists $commands $os]} {
-        exec -- {*}[dict get $commands $os]
+        puts "Running commands:"
+        foreach command [dict get $commands $os] {
+            puts "$command"
+        }
+        puts ""
+        foreach command [dict get $commands $os] {
+            puts [exec -- {*}$command]
+        }
     } else {
         puts {Sorry, automatic dependency installation is not supported on\
                 your OS. Please install the dependencies manually.}

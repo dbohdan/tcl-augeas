@@ -88,16 +88,18 @@ parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
 
     if (success == TCL_OK) {
         result_obj = Tcl_GetObjResult(interp);
-        Tcl_IncrRefCount(result_obj);
 
+        Tcl_IncrRefCount(result_obj);
         conv_result = Tcl_GetIntFromObj(interp, result_obj, id);
+        Tcl_DecrRefCount(result_obj);
+        Tcl_FreeResult(interp);
+
         if (conv_result != TCL_OK) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_TOKEN, -1));
             return TCL_ERROR;
         }
 
         (*id)--; /* Tokens start from one while actual ids start from zero. */
-        Tcl_DecrRefCount(result_obj);
 
         if (AUG_CDATA->active[*id] != 1) {
             Tcl_SetObjResult(interp, Tcl_NewStringObj("object not found", -1));

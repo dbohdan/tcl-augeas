@@ -74,6 +74,7 @@ struct AugeasData
 
 /* Functions */
 
+
 /* Set id to the integer value of the Augeas interpreter token. */
 static int
 parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
@@ -117,6 +118,7 @@ parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
     }
 }
 
+
 /*
  * Initialize an Augeas object.
  * Usage: init root ?loadpath? ?flags?
@@ -126,8 +128,8 @@ parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
 static int
 Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
-    char* root = NULL;
-    char* loadpath = NULL;
+    const char* root = NULL;
+    const char* loadpath = NULL;
     int flags = 0;
     int id = -1;
     int i;
@@ -176,6 +178,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     return TCL_OK;
 }
+
 
 /*
  * Reloads an Augeas object.
@@ -237,6 +240,7 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     return TCL_OK;
 }
+
 
 /*
  * Save the changes made to Augeas nodes to disk.
@@ -316,6 +320,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 }
+
 
 /*
  * Set the value of one node.
@@ -462,6 +467,7 @@ Span_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         list = Tcl_NewListObj(0, NULL);
 
         Tcl_ListObjAppendElement(interp, list, Tcl_NewStringObj(filename, -1));
+        free(filename);
 
         /* Use nested lists for convenience of use with [string range]. */
         sublist = Tcl_NewListObj(0, NULL);
@@ -544,6 +550,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
     }
 }
 
+
 /*
  * Move subtree src to dst.
  * Usage: mv token src dst
@@ -587,6 +594,7 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 }
+
 
 /*
  * Remove all nodes that match path.
@@ -634,6 +642,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 }
 
 
+
 /*
  * Change the label of all nodes that match src to lbl.
  * Usage: rename token src lbl
@@ -679,6 +688,7 @@ Rename_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]
         return TCL_ERROR;
     }
 }
+
 
 /*
  * Find all nodes that match path.
@@ -728,6 +738,7 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
                 free(matches[i]);
             }
         }
+        free(matches);
 
         Tcl_SetObjResult(interp, list);
 

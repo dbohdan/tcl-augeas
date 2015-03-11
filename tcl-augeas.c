@@ -29,9 +29,11 @@
 #define GET "::get"
 #define SET "::set"
 #define SETM "::setm"
+#define SPAN "::span"
 #define INSERT "::insert"
 #define MV "::mv"
 #define RM "::rm"
+#define RENAME "::rename"
 #define MATCH "::match"
 
 /* Error messages. */
@@ -54,8 +56,10 @@
 #define USAGE_SET "\"set token path value\""
 #define USAGE_SETM "\"setm token base sub value\""
 #define USAGE_INSERT "\"insert token path label ?before?\""
+#define USAGE_SPAN "\"span token path\""
 #define USAGE_MV "\"mv token src dst\""
 #define USAGE_RM "\"rm token path\""
+#define USAGE_RENAME "\"rename token src lbl\""
 #define USAGE_MATCH "\"match token path\""
 
 /* Data types. */
@@ -413,6 +417,80 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     }
 }
 
+
+/*
+ * It's complicated.
+ * Usage: span token path
+ * Return value: {filename {label_start label_end} {value_start value_end}
+ *                         {span_start span_end}}.
+ * Side effects: none.
+ */
+static int
+Span_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    Tcl_Obj *list = NULL;
+    Tcl_Obj *sublist = NULL;
+    int id;
+    int success;
+    const char* path;
+    char* filename;
+    unsigned int label_start;
+    unsigned int label_end;
+    unsigned int value_start;
+    unsigned int value_end;
+    unsigned int span_start;
+    unsigned int span_end;
+
+    if (objc != 3) {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SPAN, -1));
+        return TCL_ERROR;
+    }
+
+    success = parse_id(cdata, interp, objv[1], &id);
+    if (success != TCL_OK) {
+        return success;
+    }
+
+    path = Tcl_GetString(objv[2]);
+
+    int aug_result = aug_span(AUG_CDATA->object[id], path, &filename,
+            &label_start, &label_end,
+            &value_start, &value_end,
+            &span_start, &span_end);
+
+    if (aug_result == 0) {
+        list = Tcl_NewListObj(0, NULL);
+
+        Tcl_ListObjAppendElement(interp, list, Tcl_NewStringObj(filename, -1));
+
+        /* Use nested lists for convenience of use with [string range]. */
+        sublist = Tcl_NewListObj(0, NULL);
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(label_start));
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(label_end));
+        Tcl_ListObjAppendElement(interp, list, sublist);
+
+        sublist = Tcl_NewListObj(0, NULL);
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(value_start));
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(value_end));
+        Tcl_ListObjAppendElement(interp, list, sublist);
+
+        sublist = Tcl_NewListObj(0, NULL);
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(span_start));
+        Tcl_ListObjAppendElement(interp, sublist, Tcl_NewIntObj(span_end));
+        Tcl_ListObjAppendElement(interp, list, sublist);
+
+        Tcl_SetObjResult(interp, list);
+
+        return TCL_OK;
+    } else {
+        Tcl_SetObjResult(interp,
+                Tcl_NewStringObj("path not a filename or doesn't exist", -1));
+
+        return TCL_ERROR;
+    }
+}
+
+
 /*
  * Insert a sibling node of path with label label before or after path.
  * Usage: insert token path label ?before?
@@ -465,9 +543,6 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
         return TCL_ERROR;
     }
 }
-
-
-
 
 /*
  * Move subtree src to dst.
@@ -558,6 +633,53 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     }
 }
 
+
+/*
+ * Change the label of all nodes that match src to lbl.
+ * Usage: rename token src lbl
+ * Return value: nothing.
+ * Side effects: changes an Augeas object.
+ */
+static int
+Rename_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+{
+    int id;
+    int success;
+    const char* src;
+    const char* lbl;
+    int aug_result;
+
+    if (objc != 4) {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_RENAME, -1));
+        return TCL_ERROR;
+    }
+
+    success = parse_id(cdata, interp, objv[1], &id);
+    if (success != TCL_OK) {
+        return success;
+    }
+
+    src = Tcl_GetString(objv[2]);
+    lbl = Tcl_GetString(objv[3]);
+
+    aug_result = aug_rename(AUG_CDATA->object[id], src, lbl);
+
+    if (aug_result > 0) {
+        /* Return the number of nodes renamed. */
+        Tcl_SetObjResult(interp, Tcl_NewIntObj(aug_result));
+
+        return TCL_OK;
+    } else if (aug_result == 0) {
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_NO_NODES, -1));
+
+        return TCL_ERROR;
+    } else { /* aug_result < 0 */
+        Tcl_SetObjResult(interp, Tcl_NewStringObj("invalid path", -1));
+
+        return TCL_ERROR;
+    }
+}
+
 /*
  * Find all nodes that match path.
  * Usage: match token path
@@ -589,7 +711,6 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
     aug_result = aug_match(AUG_CDATA->object[id], path, &matches);
 
-    list = Tcl_NewListObj(0, NULL);
 
     if (aug_result >= 0) {
         /* Return the matched paths. */
@@ -598,6 +719,7 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
          * to consider the case when the result is empty as part of normal
          * operation. Hence, no error is generated. */
 
+        list = Tcl_NewListObj(0, NULL);
         if (aug_result > 0) {
             for (i = 0; i < aug_result; i++)
             {
@@ -652,9 +774,11 @@ Tclaugeas_Init(Tcl_Interp *interp)
     Tcl_CreateObjCommand(interp, NS GET, Get_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS SET, Set_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS SETM, Setm_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS SPAN, Span_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, augeas_data, NULL);
+    Tcl_CreateObjCommand(interp, NS RENAME, Rename_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, augeas_data, NULL);
     Tcl_PkgProvide(interp, PACKAGE, VERSION);
 

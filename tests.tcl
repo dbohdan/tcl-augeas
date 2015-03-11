@@ -29,7 +29,7 @@ namespace eval ::augeas::tests {
     # there in the older versions, e.g., on Ubuntu 12.04.
     tcltest::testConstraint simplevarsAvailable [simplevars-available?]
     # Disable memory-hungry tests by default.
-    tcltest::testConstraint lotsaRam 0
+    tcltest::testConstraint lotsOfRam 0
 
     tcltest::test test1 {init, get value and close Augeas} \
             -constraints simplevarsAvailable \
@@ -162,9 +162,9 @@ namespace eval ::augeas::tests {
         return $result
     } -result {/usr/local/bin/backup 9,17}
 
-    # This test takes a long time to complete.
+    # This test can take considerable time and a lot of memory to complete.
     tcltest::test test10 {Try to run out of interpreters} \
-            -constraints lotsaRam \
+            -constraints lotsOfRam \
             -setup $setup \
             -body {
         set error 0
@@ -185,6 +185,44 @@ namespace eval ::augeas::tests {
 
         return [llength $ids]
     } -result 16
+
+    tcltest::test test11 {span} \
+            -setup $setup \
+            -body {
+        set result {}
+
+        set id [::augeas::init [file join [pwd] test]]
+        ::augeas::set $id /augeas/span enable
+        ::augeas::rm $id /files
+        ::augeas::load $id
+        set span [::augeas::span $id {/files/etc/httpd/httpd.conf/directive[2]}]
+        ::augeas::close $id
+
+        lappend result {*}[lrange $span 1 end]
+
+        set handle [open [file join [pwd] test/etc/httpd/httpd.conf]]
+        set data [read $handle]
+        close $handle
+
+        for {set i 1} {$i <= 3} {incr i} {
+            lappend result [string range $data {*}[lindex $span $i]-1]
+        }
+
+        return $result
+    } -result [list {0 0} {21 27} {21 33} {} Listen "Listen 8080\n"]
+
+    tcltest::test test12 {rename} \
+            -constraints simplevarsAvailable \
+            -setup $setup \
+            -body {
+        set id [::augeas::init [file join [pwd] test]]
+        ::augeas::rename $id /files/etc/wgetrc/quota hello
+        set result [::augeas::get $id /files/etc/wgetrc/hello]
+        ::augeas::close $id
+
+        return $result
+    } -result inf
+
 
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {

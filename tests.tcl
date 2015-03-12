@@ -224,12 +224,12 @@ namespace eval ::augeas::tests {
             -setup $setup \
             -body {
         set id [::augeas::init [file join [pwd] test]]
-        ::augeas::rename $id /files/etc/wgetrc/quota hello
-        set result [::augeas::get $id /files/etc/wgetrc/hello]
+        set count [::augeas::rename $id /files/etc/wgetrc/quota hello]
+        set value [::augeas::get $id /files/etc/wgetrc/hello]
         ::augeas::close $id
 
-        return $result
-    } -result inf
+        return [list $count $value]
+    } -result {1 inf}
 
 
     # Exit with nonzero status if there are failed tests.

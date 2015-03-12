@@ -11,6 +11,7 @@ namespace eval ::buildsys {
     variable cc cc
     variable packages [list augeas]
     variable flags [list -Wall -Werror -fPIC]
+    variable retryFlags [list -DNO_RENAME]
     variable includes [list -I[::tcl::pkgconfig get includedir,runtime]]
     variable libs [list -L[::tcl::pkgconfig get libdir,runtime]]
 
@@ -29,11 +30,19 @@ proc ::buildsys::with-path {path code} {
     cd $prevPath
 }
 
+# Run the C compiler.
+proc ::buildsys::cc args {
+    variable cc
+    puts "$cc $args"
+    exec -- $cc {*}$args
+}
+
 # Build the extension.
 proc ::buildsys::build {} {
     variable cc
     variable packages
     variable flags
+    variable retryFlags
     variable includes
     variable libs
     variable input
@@ -47,8 +56,13 @@ proc ::buildsys::build {} {
             lappend libs {*}[exec -- pkg-config --libs $package]
         }
 
-        exec -- $cc {*}$flags -c -o $object $input {*}$includes
-        exec -- $cc {*}$flags -o $output $object -shared {*}$libs
+        if {[catch {
+            cc {*}$flags -c -o $object $input {*}$includes
+        }]} {
+            puts "Default build failed. Retrying with $retryFlags."
+            cc {*}$flags {*}$retryFlags -c -o $object $input {*}$includes
+        }
+        cc {*}$flags -o $output $object -shared {*}$libs
     }
 }
 

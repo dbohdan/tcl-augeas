@@ -35,9 +35,11 @@ The commands tcl-augeas provides mirror the
 * `::augeas::get token path` -> value
 * `::augeas::set token path value` ->  (nothing)
 * `::augeas::setm token base sub value` -> number of nodes changed
+* `::augeas::span token base` -> {filename {label_start label_end} {value_start value_end} {span_start span_end}}
 * `::augeas::insert token path label ?before?` -> (nothing)
 * `::augeas::mv token src dst` -> (nothing)
 * `::augeas::rm token path` -> number of nodes removed
+* `::augeas::rename token src lbl` -> number of nodes renamed
 * `::augeas::match token path` -> list of matches
 
 In addition to the obvious errors like missing arguments an error is also
@@ -47,7 +49,8 @@ generated when
 * `init` can't create any more Augeas objects (more than 16 by default);
 * `get` path matches multiple or no nodes;
 * `setm` changes no nodes;
-* `rm` changes no nodes.
+* `rm` changes no nodes;
+* `rename` changes no nodes.
 
 ## License
 

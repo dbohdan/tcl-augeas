@@ -25,9 +25,17 @@ namespace eval ::augeas::tests {
         return $result
     }
 
+    proc rename-available? {} {
+        variable setup
+        eval $setup
+        set result [expr {[info commands ::augeas::rename] ne ""}]
+        return $result
+    }
+
     # Some tests require the Augeas lens Simplevars to be available, which isn't
     # there in the older versions, e.g., on Ubuntu 12.04.
     tcltest::testConstraint simplevarsAvailable [simplevars-available?]
+    tcltest::testConstraint renameAvailable [rename-available?]
     # Disable memory-hungry tests by default.
     tcltest::testConstraint lotsOfRam 0
 
@@ -212,7 +220,7 @@ namespace eval ::augeas::tests {
     } -result [list {0 0} {21 27} {21 33} {} Listen "Listen 8080\n"]
 
     tcltest::test test12 {rename} \
-            -constraints simplevarsAvailable \
+            -constraints renameAvailable \
             -setup $setup \
             -body {
         set id [::augeas::init [file join [pwd] test]]

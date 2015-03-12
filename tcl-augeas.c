@@ -55,8 +55,8 @@
 #define USAGE_GET "\"get token path\""
 #define USAGE_SET "\"set token path value\""
 #define USAGE_SETM "\"setm token base sub value\""
-#define USAGE_INSERT "\"insert token path label ?before?\""
 #define USAGE_SPAN "\"span token path\""
+#define USAGE_INSERT "\"insert token path label ?before?\""
 #define USAGE_MV "\"mv token src dst\""
 #define USAGE_RM "\"rm token path\""
 #define USAGE_RENAME "\"rename token src lbl\""
@@ -424,10 +424,11 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
 
 /*
- * It's complicated.
+ * Find the span of associated with path in its file.
  * Usage: span token path
- * Return value: {filename {label_start label_end} {value_start value_end}
- *                         {span_start span_end}}.
+ * Return value: [list filename [list label_start label_end]
+ *                              [list value_start value_end]
+ *                              [list span_start span_end]]
  * Side effects: none.
  */
 static int
@@ -490,7 +491,7 @@ Span_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_OK;
     } else {
         Tcl_SetObjResult(interp,
-                Tcl_NewStringObj("path not a filename or doesn't exist", -1));
+                Tcl_NewStringObj("path not in a file or doesn't exist", -1));
 
         return TCL_ERROR;
     }
@@ -642,7 +643,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 }
 
 
-
+#ifndef NO_RENAME
 /*
  * Change the label of all nodes that match src to lbl.
  * Usage: rename token src lbl
@@ -653,7 +654,7 @@ static int
 Rename_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 {
     int id;
-    int success;
+    inxt success;
     const char* src;
     const char* lbl;
     int aug_result;
@@ -688,6 +689,7 @@ Rename_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[]
         return TCL_ERROR;
     }
 }
+#endif
 
 
 /*
@@ -789,7 +791,9 @@ Tclaugeas_Init(Tcl_Interp *interp)
     Tcl_CreateObjCommand(interp, NS INSERT, Insert_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS MV, Mv_Cmd, augeas_data, NULL);
     Tcl_CreateObjCommand(interp, NS RM, Rm_Cmd, augeas_data, NULL);
+    #ifndef NO_RENAME
     Tcl_CreateObjCommand(interp, NS RENAME, Rename_Cmd, augeas_data, NULL);
+    #endif
     Tcl_CreateObjCommand(interp, NS MATCH, Match_Cmd, augeas_data, NULL);
     Tcl_PkgProvide(interp, PACKAGE, VERSION);
 

@@ -19,8 +19,14 @@ tcl-augeas.
 sudo make deps
 # Build and test.
 make test
-# Install the library to /custom/path/ (/usr/local/lib/ by default).
-sudo make install [DESTDIR=/custom/path/]
+# Install the package.
+sudo make install
+```
+
+By default the package is installed to the subdirectory `tcl-augeas` in [`scriptdir,runtime`](http://wiki.tcl.tk/11825), e.g., `/usr/share/tcl8.6/tcl-augeas`. To install the package to `/custom/path/` instead use the command
+
+```sh
+sudo make install DESTDIR=/custom/path/
 ```
 
 ## API

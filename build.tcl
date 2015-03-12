@@ -19,7 +19,8 @@ namespace eval ::buildsys {
     variable object libtclaugeas.o
     variable output libtclaugeas[info sharedlibextension]
 
-    variable installPath /usr/local/lib
+    variable installPath [file join \
+            [::tcl::pkgconfig get scriptdir,runtime] tcl-augeas]
 }
 
 # Run $code in directory $path.
@@ -130,7 +131,7 @@ proc ::buildsys::test {} {
     exec -- tclsh [file join $path tests.tcl]
 }
 
-# Install the shared library to the system library directory.
+# Install the package in the Tcl package directory.
 proc ::buildsys::install {{customInstallPath {}}} {
     variable path
     variable output
@@ -139,10 +140,12 @@ proc ::buildsys::install {{customInstallPath {}}} {
     } else {
         variable installPath
     }
+    file mkdir $installPath
     file copy [file join $path $output] $installPath
+    file copy [file join $path pkgIndex.tcl] $installPath
 }
 
-# Uninstall the shared library.
+# Uninstall the package.
 proc ::buildsys::uninstall {{customInstallPath {}}} {
     variable output
     if {$customInstallPath ne ""} {
@@ -151,6 +154,8 @@ proc ::buildsys::uninstall {{customInstallPath {}}} {
         variable installPath
     }
     file delete [file join $installPath $output]
+    file delete [file join $installPath pkgIndex.tcl]
+    file delete [file join $installPath]
 }
 
 

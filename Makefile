@@ -1,4 +1,4 @@
-DESTDIR?=/usr/local/lib/
+DESTDIR?=
 
 all: test
 libtclaugeas:

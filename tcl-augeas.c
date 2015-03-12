@@ -651,10 +651,11 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
  * Side effects: changes an Augeas object.
  */
 static int
-Rename_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
+Rename_Cmd(ClientData cdata, Tcl_Interp *interp,
+    int objc, Tcl_Obj *const objv[])
 {
     int id;
-    inxt success;
+    int success;
     const char* src;
     const char* lbl;
     int aug_result;

@@ -7,15 +7,27 @@ configuration editing tool.
 
 ## Installation
 
-tcl-augeas has been tested to build on Ubuntu 12.04, Ubuntu 14.04, Fedora 21,
-CentOS 6.5 and FreeBSD 10.1 with Augeas 0.10 through 1.3.
+tcl-augeas has been tested to build and run with Augeas 0.10 through 1.3 on
+the following operating systems:
 
-You will need Tcl 8.5 or 8.6 already installed on your system to build
-tcl-augeas.
+* Fedora 21
+* CentOS 6.5
+* CentOS 7.0
+* openSUSE 13.1
+* Ubuntu 12.04
+* Ubuntu 14.04
+* FreeBSD 10.1
+* OpenBSD 5.6
+
+You will need Tcl 8.5 or 8.6 already installed on your system and available as
+`tclsh` to build tcl-augeas.
+
+Dependencies for tcl-augeas can be installed automatically on Debian/Ubuntu,
+Fedora/CentOS, openSUSE, FreeBSD 10+ and OpenBSD. To install them the build
+script will use `apt-get`, `yum`, `zypper`, `pkg` and `pkg_add` respectively.
 
 ```sh
-# Automatically install the dependencies on Ubuntu/Debian, Fedora/CentOS and
-# FreeBSD 10+ using apt-get, yum and pkg respectively.
+# Install the dependencies automatically on supported operating systems.
 sudo make deps
 # Build and test.
 make test
@@ -23,7 +35,10 @@ make test
 sudo make install
 ```
 
-By default the package is installed to the subdirectory `tcl-augeas` in [`scriptdir,runtime`](http://wiki.tcl.tk/11825), e.g., `/usr/share/tcl8.6/tcl-augeas`. To install the package to `/custom/path/` instead use the command
+By default the package is installed to the subdirectory `tcl-augeas` in
+[`scriptdir,runtime`](http://wiki.tcl.tk/11825), e.g.,
+`/usr/share/tcl8.6/tcl-augeas`. To install the package to `/custom/path/`
+instead use the command
 
 ```sh
 sudo make install DESTDIR=/custom/path/

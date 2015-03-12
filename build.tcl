@@ -71,15 +71,21 @@ proc ::buildsys::build {} {
 proc ::buildsys::detect-os {} {
     set uname [exec -- uname]
     if {$uname eq "Linux"} {
-        if ([file exists /etc/debian_version]) {
+        if {[file exists /etc/debian_version]} {
             return debian
-        } elseif ([file exists /etc/redhat-release]) {
+        } elseif {[file exists /etc/redhat-release]} {
             return redhat
+        } elseif {![catch {exec -- grep -q openSUSE /etc/os-release}]} {
+            return opensuse
         } else {
             return unknown-linux
         }
     } elseif {$uname eq "FreeBSD"} {
         return freebsd
+    } elseif {$uname eq "OpenBSD"} {
+        return openbsd
+    } elseif {$uname eq "NetBSD"} {
+        return netbsd
     } else {
         return unknown
     }
@@ -95,9 +101,14 @@ proc ::buildsys::deps {} {
         debian
         {{apt-get install -y build-essential pkg-config tcl-dev libaugeas-dev}}
 
+        opensuse
+        {{zypper install -y gcc make pkgconfig tcl-devel augeas-devel}}
+
         freebsd
-        {{pkg install tcl86 augeas pkgconf}
-        {ln -s /usr/local/bin/tclsh8.6 /usr/local/bin/tclsh}}
+        {{pkg install augeas pkgconf}}
+
+        openbsd
+        {{pkg_add augeas}}
     }
 
     set os [detect-os]
@@ -108,7 +119,7 @@ proc ::buildsys::deps {} {
         }
         puts ""
         foreach command [dict get $commands $os] {
-            puts [exec -- {*}$command]
+            puts [exec -ignorestderr -- {*}$command]
         }
     } else {
         puts {Sorry, automatic dependency installation is not supported on\

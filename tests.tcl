@@ -64,8 +64,9 @@ namespace eval ::augeas::tests {
             -constraints simplevarsAvailable \
             -setup $setup \
             -body {
+        set result {}
         set id [::augeas::init [file join [pwd] test]]
-        ::augeas::setm $id "/files/etc/wgetrc" * 20
+        set count [::augeas::setm $id "/files/etc/wgetrc" * 20]
         set quota [::augeas::get $id "/files/etc/wgetrc/quota"]
         set tries [::augeas::get $id "/files/etc/wgetrc/tries"]
         ::augeas::save $id
@@ -75,26 +76,28 @@ namespace eval ::augeas::tests {
         ::augeas::save $id
 
         ::augeas::close $id
-        return [list $quota $tries]
-    } -result [list 20 20]
+        return [list $count $quota $tries]
+    } -result [list 3 20 20]
 
     tcltest::test test4 {insert, mv and rm} \
             -constraints simplevarsAvailable \
             -setup $setup \
             -body {
+        set result {}
+
         set id [::augeas::init [file join [pwd] test]]
         ::augeas::insert $id "/files/etc/wgetrc/quota" foo 0
         ::augeas::mv $id "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
-        ::augeas::rm $id "/files/etc/wgetrc/bar"
+        lappend result [::augeas::rm $id "/files/etc/wgetrc/bar"]
 
         ::augeas::insert $id "/files/etc/wgetrc/quota" baz
         ::augeas::insert $id "/files/etc/wgetrc/quota" qux 1
-        ::augeas::rm $id "/files/etc/wgetrc/baz"
-        ::augeas::rm $id "/files/etc/wgetrc/qux"
+        lappend result [::augeas::rm $id \
+                {/files/etc/wgetrc/baz|/files/etc/wgetrc/qux}]
 
         ::augeas::close $id
-        return
-    }
+        return $result
+    } -result {1 2}
 
     tcltest::test test5 {match} \
             -constraints simplevarsAvailable \

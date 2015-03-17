@@ -19,8 +19,9 @@ namespace eval ::buildsys {
     variable object libtclaugeas.o
     variable output libtclaugeas[info sharedlibextension]
 
-    variable installPath [file join \
+    variable packageInstallPath [file join \
             [::tcl::pkgconfig get scriptdir,runtime] tcl-augeas]
+    variable libInstallPath [::tcl::pkgconfig get libdir,runtime]
 }
 
 # Run $code in directory $path.
@@ -142,31 +143,81 @@ proc ::buildsys::test {} {
     exec -- tclsh [file join $path tests.tcl]
 }
 
+# Copy file $from to $to.
+proc ::buildsys::copy {from to} {
+    puts "copying file $from to $to"
+    file copy $from $to
+}
+
+# Delete file or directory $path.
+proc ::buildsys::delete {path} {
+    puts "deleting $path"
+    file delete $path
+}
+
+# Write $content to $filename.
+proc ::buildsys::write-file {filename content {binary 0}} {
+    set file [open $filename w]
+    if {$binary} {
+        fconfigure $file -translation binary
+    } else {
+        puts "writing to $filename the following content:"
+        puts "------\n$content\n------"
+    }
+    puts -nonewline $file $content
+    close $file
+}
+
+# Functionality common to both the installation and the uninstallation
+# operation.
+proc ::buildsys::install-uninstall-prepare {customInstallPath} {
+    uplevel 1 {
+        variable path
+        variable output
+        if {$customInstallPath ne ""} {
+            set packageInstallPath $customInstallPath
+            set libInstallPath $customInstallPath
+        } else {
+            variable packageInstallPath
+            variable libInstallPath
+        }
+    }
+}
+
 # Install the package in the Tcl package directory.
 proc ::buildsys::install {{customInstallPath {}}} {
-    variable path
+    install-uninstall-prepare $customInstallPath
+
+    file mkdir $packageInstallPath
+    copy [file join $path $output] $libInstallPath
+
+    variable input
     variable output
-    if {$customInstallPath ne ""} {
-        set installPath $customInstallPath
-    } else {
-        variable installPath
+
+    # Get package name and version from $input.
+    foreach {varName awkScript} {
+        package {/#define PACKAGE/ { print $3 }}
+        version {/#define VERSION/ { print $3 }}
+    } {
+        variable $varName [string trim \
+                [exec -- awk $awkScript [file join $path $input]] \"]
     }
-    file mkdir $installPath
-    file copy [file join $path $output] $installPath
-    file copy [file join $path pkgIndex.tcl] $installPath
+
+    # Create pkgIndex.tcl.
+    set content [list apply {{package version path sharedLibrary} {
+        package ifneeded $package $version \
+                [list load [file join $path $sharedLibrary]]
+    }} $package $version $libInstallPath $output]
+    write-file [file join $packageInstallPath pkgIndex.tcl] $content
 }
 
 # Uninstall the package.
 proc ::buildsys::uninstall {{customInstallPath {}}} {
-    variable output
-    if {$customInstallPath ne ""} {
-        set installPath $customInstallPath
-    } else {
-        variable installPath
-    }
-    file delete [file join $installPath $output]
-    file delete [file join $installPath pkgIndex.tcl]
-    file delete [file join $installPath]
+    install-uninstall-prepare $customInstallPath
+
+    delete [file join $libInstallPath $output]
+    delete [file join $packageInstallPath pkgIndex.tcl]
+    delete [file join $packageInstallPath]
 }
 
 

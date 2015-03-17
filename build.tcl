@@ -150,9 +150,13 @@ proc ::buildsys::copy {from to} {
 }
 
 # Delete file or directory $path.
-proc ::buildsys::delete {path} {
-    puts "deleting $path"
-    file delete $path
+proc ::buildsys::delete path {
+    if {[file exists $path]} {
+        puts "deleting $path"
+        file delete $path
+    } else {
+        puts "can't delete nonexistent path $path"
+    }
 }
 
 # Write $content to $filename.

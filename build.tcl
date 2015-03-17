@@ -170,7 +170,7 @@ proc ::buildsys::write-file {filename content {binary 0}} {
 
 # Functionality common to both the installation and the uninstallation
 # operation.
-proc ::buildsys::install-uninstall-prepare {customInstallPath} {
+proc ::buildsys::set-install-paths {customInstallPath} {
     uplevel 1 {
         variable path
         variable output
@@ -184,9 +184,9 @@ proc ::buildsys::install-uninstall-prepare {customInstallPath} {
     }
 }
 
-# Install the package in the Tcl package directory.
+# Install the extension library and the corresponding Tcl package.
 proc ::buildsys::install {{customInstallPath {}}} {
-    install-uninstall-prepare $customInstallPath
+    set-install-paths $customInstallPath
 
     file mkdir $packageInstallPath
     copy [file join $path $output] $libInstallPath
@@ -196,7 +196,7 @@ proc ::buildsys::install {{customInstallPath {}}} {
 
     # Get package name and version from $input.
     foreach {varName awkScript} {
-        package {/#define PACKAGE/ { print $3 }}
+        packageName {/#define PACKAGE/ { print $3 }}
         version {/#define VERSION/ { print $3 }}
     } {
         variable $varName [string trim \
@@ -204,22 +204,21 @@ proc ::buildsys::install {{customInstallPath {}}} {
     }
 
     # Create pkgIndex.tcl.
-    set content [list apply {{package version path sharedLibrary} {
-        package ifneeded $package $version \
+    set content [list apply {{packageName version path sharedLibrary} {
+        package ifneeded $packageName $version \
                 [list load [file join $path $sharedLibrary]]
-    }} $package $version $libInstallPath $output]
+    }} $packageName $version $libInstallPath $output]
     write-file [file join $packageInstallPath pkgIndex.tcl] $content
 }
 
-# Uninstall the package.
+# Remove the extension library and the corresponding Tcl package.
 proc ::buildsys::uninstall {{customInstallPath {}}} {
-    install-uninstall-prepare $customInstallPath
+    set-install-paths $customInstallPath
 
     delete [file join $libInstallPath $output]
     delete [file join $packageInstallPath pkgIndex.tcl]
     delete [file join $packageInstallPath]
 }
-
 
 # Check if we were run as the primary script by the interpreter. Code from
 # http://wiki.tcl.tk/40097.

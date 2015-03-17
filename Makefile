@@ -14,3 +14,4 @@ install:
 uninstall:
 	tclsh build.tcl uninstall $(DESTDIR)
 .PHONY: clean
+.POSIX:

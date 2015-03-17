@@ -7,8 +7,8 @@ configuration editing tool.
 
 ## Installation
 
-tcl-augeas has been tested to build and run with Augeas 0.10 through 1.3 on
-the following operating systems:
+tcl-augeas has been tested to build and run with Augeas 0.10
+through 1.3 on the following operating systems:
 
 * Fedora 21
 * CentOS 6.5
@@ -27,7 +27,7 @@ Fedora/CentOS, openSUSE, FreeBSD 10+ and OpenBSD. To install them the build
 script will use `apt-get`, `yum`, `zypper`, `pkg` and `pkg_add` respectively.
 
 ```sh
-# Install the dependencies automatically on supported operating systems.
+# Install the dependencies automatically on a supported operating system.
 sudo make deps
 # Build and test.
 make test

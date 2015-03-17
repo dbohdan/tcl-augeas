@@ -40,7 +40,6 @@
 
 #define ERROR_TOKEN "can't parse token"
 #define ERROR_INTEGER "integer expected"
-#define ERROR_ARGS "wrong # args: should be "
 #define ERROR_PATH "invalid path"
 #define ERROR_NO_NODES "no nodes match path"
 #define ERROR_UNKNOWN "unknown error"
@@ -48,19 +47,19 @@
 
 /* Usage. */
 
-#define USAGE_INIT "\"init root ?loadpath? ?flags?\""
-#define USAGE_CLOSE "\"close token\""
-#define USAGE_SAVE "\"save token\""
-#define USAGE_LOAD "\"load token\""
-#define USAGE_GET "\"get token path\""
-#define USAGE_SET "\"set token path value\""
-#define USAGE_SETM "\"setm token base sub value\""
-#define USAGE_SPAN "\"span token path\""
-#define USAGE_INSERT "\"insert token path label ?before?\""
-#define USAGE_MV "\"mv token src dst\""
-#define USAGE_RM "\"rm token path\""
-#define USAGE_RENAME "\"rename token src lbl\""
-#define USAGE_MATCH "\"match token path\""
+#define USAGE_INIT "root ?loadpath? ?flags?"
+#define USAGE_CLOSE "token"
+#define USAGE_SAVE "token"
+#define USAGE_LOAD "token"
+#define USAGE_GET "token path"
+#define USAGE_SET "token path value"
+#define USAGE_SETM "token base sub value"
+#define USAGE_SPAN "token path"
+#define USAGE_INSERT "token path label ?before?"
+#define USAGE_MV "token src dst"
+#define USAGE_RM "token path"
+#define USAGE_RENAME "token src lbl"
+#define USAGE_MATCH "token path"
 
 /* Data types. */
 
@@ -94,7 +93,6 @@ parse_id(ClientData cdata, Tcl_Interp *interp, Tcl_Obj *const idobj, int *id)
 
     if (success == TCL_OK) {
         result_obj = Tcl_GetObjResult(interp);
-
         Tcl_IncrRefCount(result_obj);
         conv_result = Tcl_GetIntFromObj(interp, result_obj, id);
         Tcl_DecrRefCount(result_obj);
@@ -137,7 +135,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     Tcl_Obj *result;
 
     if ((objc < 2) || (objc > 4)) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INIT, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_INIT);
         return TCL_ERROR;
     }
 
@@ -172,7 +170,9 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     AUG_CDATA->active[id] = 1;
 
     token[0] = Tcl_NewIntObj(id + 1);
+    Tcl_IncrRefCount(token[0]);
     result = Tcl_Format(interp, NS "::%d", 1, token);
+    Tcl_DecrRefCount(token[0]);
 
     Tcl_SetObjResult(interp, result);
 
@@ -193,7 +193,7 @@ Load_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 2) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_LOAD, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_LOAD);
         return TCL_ERROR;
     }
 
@@ -207,8 +207,7 @@ Load_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     if (aug_result == 0) {
         return TCL_OK;
     } else {
-        Tcl_SetObjResult(interp,
-                    Tcl_NewStringObj("can't load", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj("can't load", -1));
         return TCL_ERROR;
     }
 }
@@ -226,7 +225,7 @@ Close_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int success;
 
     if (objc != 2) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_CLOSE, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_CLOSE);
         return TCL_ERROR;
     }
 
@@ -256,7 +255,7 @@ Save_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 2) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SAVE, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_SAVE);
         return TCL_ERROR;
     }
 
@@ -292,7 +291,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     const char* value;
 
     if (objc != 3) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_GET, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_GET);
         return TCL_ERROR;
     }
 
@@ -338,7 +337,7 @@ Set_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 4) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SET, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_SET);
         return TCL_ERROR;
     }
 
@@ -385,7 +384,7 @@ Setm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 5) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SETM, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_SETM);
         return TCL_ERROR;
     }
 
@@ -448,7 +447,7 @@ Span_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     unsigned int span_end;
 
     if (objc != 3) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_SPAN, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_SPAN);
         return TCL_ERROR;
     }
 
@@ -517,7 +516,7 @@ Insert_Cmd(ClientData cdata, Tcl_Interp *interp,
     int aug_result;
 
     if ((objc < 4) || (objc > 5)) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_INSERT, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_INSERT);
         return TCL_ERROR;
     }
 
@@ -568,7 +567,7 @@ Mv_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 4) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_MV, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_MV);
         return TCL_ERROR;
     }
 
@@ -612,7 +611,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int aug_result;
 
     if (objc != 3) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_RM, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_RM);
         return TCL_ERROR;
     }
 
@@ -652,7 +651,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
  */
 static int
 Rename_Cmd(ClientData cdata, Tcl_Interp *interp,
-    int objc, Tcl_Obj *const objv[])
+        int objc, Tcl_Obj *const objv[])
 {
     int id;
     int success;
@@ -661,7 +660,7 @@ Rename_Cmd(ClientData cdata, Tcl_Interp *interp,
     int aug_result;
 
     if (objc != 4) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_RENAME, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_RENAME);
         return TCL_ERROR;
     }
 
@@ -711,7 +710,7 @@ Match_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
     int i;
 
     if (objc != 3) {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_ARGS USAGE_MATCH, -1));
+        Tcl_WrongNumArgs(interp, 1, objv, USAGE_MATCH);
         return TCL_ERROR;
     }
 

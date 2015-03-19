@@ -35,10 +35,11 @@ make test
 sudo make install
 ```
 
-By default the package is installed to the subdirectory `tcl-augeas` in
-[`scriptdir,runtime`](http://wiki.tcl.tk/11825), e.g.,
-`/usr/share/tcl8.6/tcl-augeas`. To install the package to `/custom/path/`
-instead use the command
+By default the shared library is installed to
+[`libdir,runtime`](http://wiki.tcl.tk/11825), e.g., `/usr/lib64`, and the
+package is installed to the subdirectory `tcl-augeas` in `scriptdir,runtime`,
+e.g., `/usr/share/tcl8.6/tcl-augeas`. To install both the shared library and
+the package to `/custom/path/` instead use the command
 
 ```sh
 sudo make install DESTDIR=/custom/path/

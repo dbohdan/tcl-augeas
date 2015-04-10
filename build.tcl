@@ -18,6 +18,7 @@ namespace eval ::buildsys {
     variable input tcl-augeas.c
     variable object libtclaugeas.o
     variable output libtclaugeas[info sharedlibextension]
+    variable extras [list augeas::oo oo.tcl]
 
     variable packageInstallPath [file join \
             [::tcl::pkgconfig get scriptdir,runtime] tcl-augeas]
@@ -178,6 +179,7 @@ proc ::buildsys::set-install-paths {customInstallPath} {
     uplevel 1 {
         variable path
         variable output
+        variable extras
         if {$customInstallPath ne ""} {
             set packageInstallPath $customInstallPath
             set libInstallPath $customInstallPath
@@ -195,12 +197,17 @@ proc ::buildsys::install {{customInstallPath {}}} {
     file mkdir $packageInstallPath
     copy [file join $path $output] $libInstallPath
 
+    # Copy extra files.
+    foreach {package filename} $extras {
+        copy [file join $path $filename] $packageInstallPath
+    }
+
     variable input
     variable output
 
     # Get package name and version from $input.
     foreach {varName awkScript} {
-        packageName {/#define PACKAGE/ { print $3 }}
+        mainPackageName {/#define PACKAGE/ { print $3 }}
         version {/#define VERSION/ { print $3 }}
     } {
         variable $varName [string trim \
@@ -208,10 +215,18 @@ proc ::buildsys::install {{customInstallPath {}}} {
     }
 
     # Create pkgIndex.tcl.
-    set content [list apply {{packageName version path sharedLibrary} {
-        package ifneeded $packageName $version \
-                [list load [file join $path $sharedLibrary]]
-    }} $packageName $version $libInstallPath $output]
+    set content [list apply {
+        {mainPackageName version libInstallPath sharedLibrary packageInstallPath
+                extras} {
+            package ifneeded $mainPackageName $version \
+                    [list load [file join $libInstallPath $sharedLibrary]]
+            foreach {extraPackageName filename} $extras {
+                package ifneeded $extraPackageName $version \
+                        [list source [file join $packageInstallPath $filename]]
+            }
+        }
+    } $mainPackageName $version $libInstallPath $output $packageInstallPath\
+            $extras]
     write-file [file join $packageInstallPath pkgIndex.tcl] $content
 }
 
@@ -221,6 +236,9 @@ proc ::buildsys::uninstall {{customInstallPath {}}} {
 
     delete [file join $libInstallPath $output]
     delete [file join $packageInstallPath pkgIndex.tcl]
+    foreach {package filename} $extras {
+        delete [file join $packageInstallPath $filename]
+    }
     delete [file join $packageInstallPath]
 }
 

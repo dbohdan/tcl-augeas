@@ -47,6 +47,8 @@ sudo make install DESTDIR=/custom/path/
 
 ## API
 
+### Standard API
+
 The commands tcl-augeas provides mirror the
 [C public API of Augeas](http://augeas.net/docs/api.html).
 
@@ -73,6 +75,25 @@ generated when
 * `setm` changes no nodes;
 * `rm` changes no nodes;
 * `rename` changes no nodes.
+
+## OO wrapper
+
+An object-oriented API wrapper is available from the package `augeas::oo`.
+It requires [TclOO](http://wiki.tcl.tk/18152).
+
+* `::augeas::oo::Augeas new root ?loadpath? ?flags?` -> (obj)
+* `$obj destroy` -> (nothing)
+* `$obj save` -> (nothing)
+* `$obj load` -> (nothing)
+* `$obj get path` -> value
+* `$obj set path value` ->  (nothing)
+* `$obj setm base sub value` -> number of nodes changed
+* `$obj span base` -> {filename {label_start label_end} {value_start value_end} {span_start span_end}}
+* `$obj insert path label ?before?` -> (nothing)
+* `$obj mv src dst` -> (nothing)
+* `$obj rm path` -> number of nodes removed
+* `$obj rename src lbl` -> number of nodes renamed
+* `$obj match path` -> list of matches
 
 ## License
 

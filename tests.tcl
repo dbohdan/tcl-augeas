@@ -38,6 +38,10 @@ namespace eval ::augeas::tests {
     tcltest::testConstraint renameAvailable [rename-available?]
     # Disable memory-hungry tests by default.
     tcltest::testConstraint lotsOfRam 0
+    tcltest::testConstraint tclOO [expr {
+        ![catch { package require TclOO }]
+    }]
+
 
     tcltest::test test1 {init, get value and close Augeas} \
             -constraints simplevarsAvailable \
@@ -234,6 +238,37 @@ namespace eval ::augeas::tests {
         return [list $count $value]
     } -result {1 inf}
 
+    tcltest::test test13 {OO wrapper} \
+            -constraints tclOO \
+            -setup $setup \
+            -body {
+        package require augeas::oo
+
+        set obj [::augeas::oo::Augeas new [file join [pwd] test]]
+        set result {}
+
+        lappend result [$obj setm "/files/etc/wgetrc" * 20]
+        lappend result [$obj get "/files/etc/wgetrc/quota"]
+        lappend result [$obj get "/files/etc/wgetrc/tries"]
+        $obj set "/files/etc/wgetrc/quota" inf
+        $obj set {/files/etc/wgetrc/#comment[1]} Comment
+        $obj save
+
+        $obj insert "/files/etc/wgetrc/quota" foo 0
+        $obj mv "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
+        lappend result [::augeas::rm $id "/files/etc/wgetrc/bar"]
+
+        $obj set /augeas/span enable
+        $obj rm /files
+        $obj load
+
+        set span [$obj span {/files/etc/httpd/httpd.conf/directive[2]}]
+        lappend result {*}[lrange $span 1 end]
+
+        $obj destroy
+
+        return $result
+    } -result [list 3 20 20 1 {0 0} {21 27} {21 33}]
 
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {

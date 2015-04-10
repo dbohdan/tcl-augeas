@@ -78,22 +78,23 @@ generated when
 
 ## OO wrapper
 
-An object-oriented API wrapper is available from the package `augeas::oo`.
-It requires [TclOO](http://wiki.tcl.tk/18152).
+An optional object-oriented API wrapper is available in the package
+`augeas::oo`. It requires TclOO or Snit 2 to use. (The former ships with Tcl 8.6
+while the latter is part of Tcllib.) If both are available TclOO is used.
 
-* `::augeas::oo::Augeas new root ?loadpath? ?flags?` -> (obj)
-* `$obj destroy` -> (nothing)
-* `$obj save` -> (nothing)
-* `$obj load` -> (nothing)
-* `$obj get path` -> value
-* `$obj set path value` ->  (nothing)
-* `$obj setm base sub value` -> number of nodes changed
-* `$obj span base` -> {filename {label_start label_end} {value_start value_end} {span_start span_end}}
-* `$obj insert path label ?before?` -> (nothing)
-* `$obj mv src dst` -> (nothing)
-* `$obj rm path` -> number of nodes removed
-* `$obj rename src lbl` -> number of nodes renamed
-* `$obj match path` -> list of matches
+* `::augeas::oo::new root ?loadpath? ?flags?` -> (objName)
+* `$objName destroy` -> (nothing)
+* `$objName save` -> (nothing)
+* `$objName load` -> (nothing)
+* `$objName get path` -> value
+* `$objName set path value` ->  (nothing)
+* `$objName setm base sub value` -> number of nodes changed
+* `$objName span base` -> {filename {label_start label_end} {value_start value_end} {span_start span_end}}
+* `$objName insert path label ?before?` -> (nothing)
+* `$objName mv src dst` -> (nothing)
+* `$objName rm path` -> number of nodes removed
+* `$objName rename src lbl` -> number of nodes renamed
+* `$objName match path` -> list of matches
 
 ## License
 

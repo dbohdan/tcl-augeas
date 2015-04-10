@@ -32,15 +32,20 @@ namespace eval ::augeas::tests {
         return $result
     }
 
+    proc oo-system-available? {} {
+        return [expr {
+            ![catch { package require TclOO }] ||
+            ![catch { package require snit 2 }]
+        }]
+    }
+
     # Some tests require the Augeas lens Simplevars to be available, which isn't
     # there in the older versions, e.g., on Ubuntu 12.04.
     tcltest::testConstraint simplevarsAvailable [simplevars-available?]
     tcltest::testConstraint renameAvailable [rename-available?]
     # Disable memory-hungry tests by default.
     tcltest::testConstraint lotsOfRam 0
-    tcltest::testConstraint tclOO [expr {
-        ![catch { package require TclOO }]
-    }]
+    tcltest::testConstraint ooSystemAvailable [oo-system-available?]
 
 
     tcltest::test test1 {init, get value and close Augeas} \
@@ -239,12 +244,12 @@ namespace eval ::augeas::tests {
     } -result {1 inf}
 
     tcltest::test test13 {OO wrapper} \
-            -constraints tclOO \
+            -constraints ooSystemAvailable \
             -setup $setup \
             -body {
         package require augeas::oo
 
-        set obj [::augeas::oo::Augeas new [file join [pwd] test]]
+        set obj [::augeas::oo::new [file join [pwd] test]]
         set result {}
 
         lappend result [$obj setm "/files/etc/wgetrc" * 20]

@@ -1,8 +1,11 @@
 language: c
-before_install:
-- sudo apt-get update -qq
-install:
-- sudo apt-get -y install tcl
-- sudo make deps
+sudo: false
+addons:
+  apt:
+    packages:
+      - tcl
+      - tcl-dev
+      - pkg-config
+      - libaugeas-dev
 script:
-- make test
+  - make test

@@ -36,7 +36,7 @@ sudo make install
 ```
 
 By default the shared library is installed to
-[`libdir,runtime`](http://wiki.tcl.tk/11825), e.g., `/usr/lib64`, and the
+[`libdir,runtime`](http://tcl.wiki/11825), e.g., `/usr/lib64`, and the
 package is installed to the subdirectory `tcl-augeas` in `scriptdir,runtime`,
 e.g., `/usr/share/tcl8.6/tcl-augeas`. To install both the shared library and
 the package to `/custom/path/` instead use the command

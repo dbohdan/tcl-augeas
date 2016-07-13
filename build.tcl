@@ -11,7 +11,7 @@ namespace eval ::buildsys {
     variable cc cc
     variable packages [list augeas]
     variable flags [list -Wall -Werror -fPIC]
-    variable retryFlags [list -DNO_RENAME]
+    variable retryFlags [list -DNO_AUG_RENAME]
     variable includes [list -I[::tcl::pkgconfig get includedir,runtime]]
     variable libs [list -L[::tcl::pkgconfig get libdir,runtime]]
 

@@ -8,12 +8,13 @@ configuration editing tool.
 ## Installation
 
 tcl-augeas has been tested to build and run with Augeas 0.10
-through 1.3 on the following operating systems:
+through 1.5 on the following operating systems:
 
-* Fedora 21
+* Fedora 21-23
 * CentOS 6.5
 * CentOS 7.0
 * openSUSE 13.1
+* openSUSE Tumbleweed (20160709)
 * Ubuntu 12.04
 * Ubuntu 14.04
 * FreeBSD 10.1

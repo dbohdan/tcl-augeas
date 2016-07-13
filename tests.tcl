@@ -131,17 +131,22 @@ namespace eval ::augeas::tests {
         return $error
     } -result 1
 
-    tcltest::test test7 {object id reuse} \
+    tcltest::test test7 {object id generation} \
             -setup $setup \
             -body {
-        set ids {}
+        set result {}
         for {set i 0} {$i < 3} {incr i} {
             set id [::augeas::init [file join [pwd] test]]
-            lappend ids $id
+            set n [namespace tail $id]
+            lappend result [list integer [string is integer -strict $n]]
+            if {$i > 0} {
+                lappend result [list delta [expr {$n - $nPrev}]]
+            }
+            set nPrev $n
             ::augeas::close $id
         }
-        return [llength [lsort -unique $ids]]
-    } -result 1
+        return $result
+    } -result {{integer 1} {integer 1} {delta 1} {integer 1} {delta 1}}
 
     tcltest::test test8 {load} \
             -setup $setup \
@@ -261,7 +266,7 @@ namespace eval ::augeas::tests {
 
         $obj insert "/files/etc/wgetrc/quota" foo 0
         $obj mv "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
-        lappend result [::augeas::rm $id "/files/etc/wgetrc/bar"]
+        lappend result [$obj rm "/files/etc/wgetrc/bar"]
 
         $obj set /augeas/span enable
         $obj rm /files

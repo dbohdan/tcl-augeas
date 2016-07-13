@@ -1,5 +1,5 @@
 # tcl-augeas, Tcl bindings for Augeas.
-# Copyright (C) 2015 Danyil Bohdan.
+# Copyright (C) 2015, 2016 Danyil Bohdan.
 # This code is released under the terms of the MIT license. See the file
 # LICENSE for details.
 

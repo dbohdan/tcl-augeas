@@ -28,9 +28,9 @@ Fedora/CentOS, openSUSE, FreeBSD 10+ and OpenBSD. To install them the build
 script will use `apt-get`, `yum`, `zypper`, `pkg` and `pkg_add` respectively.
 
 ```sh
-# Create the Makefile for your system.
+# Create a Makefile for your system.
 tclsh configure.tcl
-# Install the dependencies automatically on a supported operating system.
+# Install the dependencies automatically on a supported OS.
 sudo make deps
 # Build and test.
 make test
@@ -46,7 +46,7 @@ the package to `/custom/path/` instead use the command
 
 ```sh
 tclsh configure.tcl -destdir /custom/path/
-sudo make install
+sudo make install # Or just `make install` depending on the destination path.
 ```
 
 ## API

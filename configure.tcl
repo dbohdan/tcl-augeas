@@ -1,4 +1,4 @@
-#!/usr/bin/env tclsh
+#! /usr/bin/env tclsh
 # tcl-augeas, Tcl bindings for Augeas.
 # Copyright (C) 2015, 2016 Danyil Bohdan.
 # This code is released under the terms of the MIT license. See the file
@@ -10,10 +10,10 @@ namespace eval ::buildsys {
     variable path
     variable cc cc
     variable packages [list augeas]
-    variable flags [list -Wall -Werror -fPIC]
-    variable retryFlags [list -DNO_AUG_RENAME]
+    variable flags [list -Wall -fPIC]
     variable includes [list -I[::tcl::pkgconfig get includedir,runtime]]
     variable libs [list -L[::tcl::pkgconfig get libdir,runtime]]
+    variable tclsh [info nameofexecutable]
 
     variable input tcl-augeas.c
     variable object libtclaugeas.o
@@ -23,29 +23,92 @@ namespace eval ::buildsys {
     variable packageInstallPath [file join \
             [::tcl::pkgconfig get scriptdir,runtime] tcl-augeas]
     variable libInstallPath [::tcl::pkgconfig get libdir,runtime]
+
+    variable makefile {}
 }
 
-# Run $code in directory $path.
-proc ::buildsys::with-path {path code} {
-    set prevPath [pwd]
-    cd $path
-    uplevel 1 $code
-    cd $prevPath
+# Generate and return the contents of a makefile for tcl-augeas.
+proc ::buildsys::generate-makefile args {
+    variable libraryFilename
+    variable makefile
+    variable output
+    variable tclsh
+
+    set makefile {}
+
+    if {[llength $args] % 2 == 1} {
+        error "the arguments should be a dictionary (\"$args\" given)"
+    }
+    if {[dict exists $args -destdir]} {
+        set customInstallPath [dict get $args -destdir]
+        dict unset args -destdir
+    } else {
+        set customInstallPath {}
+    }
+    if {[dict size $args] > 0} {
+        error "unknown options: $args; should be\
+                \"[dict get [info frame 0] proc] ?-destdir PATH?\""
+    }
+
+    target all test
+    target $output tcl-augeas.c
+    build
+    target clean
+    clean
+    target deps
+    deps
+    target test $output
+    test
+    target install $output
+    install $customInstallPath
+    target uninstall
+    uninstall $customInstallPath
+    target .PHONY {all clean deps test install uninstall}
+    return $makefile
 }
 
-# Run the C compiler.
-proc ::buildsys::cc args {
-    variable cc
-    puts "$cc $args"
-    exec -- $cc {*}$args
+# Add the target $name with dependencies $deps to the current makefile.
+proc ::buildsys::target {name {deps {}}} {
+    variable makefile
+    append makefile "$name: [join $deps]\n"
 }
 
-# Build the extension.
+# Quote $s for the makefile.
+proc ::buildsys::quote s {
+    if {[regexp {[^a-zA-Z0-9_./-]} $s]} {
+        # Quote $arg and escape any single quotes in it.
+        return '[string map {' '"'"' $ $$} $s]'
+    } else {
+        return $s
+    }
+}
+
+# Quote $strings.
+proc ::buildsys::quote-all args {
+    set result {}
+    foreach s $args {
+        lappend result [quote $s]
+    }
+    return [join $result]
+}
+
+# Add a command to the current makefile target quoting each of the arguments.
+proc ::buildsys::command args {
+    variable makefile
+    command-raw {*}[quote-all {*}$args]
+}
+
+# Add a command to the current makefile target without quoting.
+proc ::buildsys::command-raw args {
+    variable makefile
+    append makefile \t[join $args]\n
+}
+
+# Emit the commands to build the extension.
 proc ::buildsys::build {} {
     variable cc
     variable packages
     variable flags
-    variable retryFlags
     variable includes
     variable libs
     variable input
@@ -53,20 +116,19 @@ proc ::buildsys::build {} {
     variable output
     variable path
 
-    with-path $path {
-        foreach package $packages {
-            lappend includes {*}[exec -- pkg-config --cflags $package]
-            lappend libs {*}[exec -- pkg-config --libs $package]
-        }
-
-        if {[catch {
-            cc {*}$flags -c -o $object $input {*}$includes
-        }]} {
-            puts "Default build failed. Retrying with $retryFlags."
-            cc {*}$flags {*}$retryFlags -c -o $object $input {*}$includes
-        }
-        cc {*}$flags -o $output $object -shared {*}$libs
+    foreach package $packages {
+        lappend includes {*}[exec -- pkg-config --cflags $package]
+        lappend libs {*}[exec -- pkg-config --libs $package]
     }
+
+    set augeasVersion [exec -- pkg-config --modversion augeas]
+    if {[package vcompare $augeasVersion {1.0.0}] == -1} {
+        lappend flags -DNO_AUG_RENAME
+    }
+
+    # Retry in case the default build fails.
+    command $cc {*}$flags -c -o $object $input {*}$includes
+    command $cc {*}$flags -o $output $object -shared {*}$libs
 }
 
 # Return the user's OS.
@@ -93,8 +155,8 @@ proc ::buildsys::detect-os {} {
     }
 }
 
-# Install dependencies needed to build the extension. This should be run as
-# root.
+# Emit the command to install the dependencies needed to build the extension.
+# The command should be run as root.
 proc ::buildsys::deps {} {
     set commands {
         redhat
@@ -115,66 +177,50 @@ proc ::buildsys::deps {} {
 
     set os [detect-os]
     if {[dict exists $commands $os]} {
-        puts "Running commands:"
         foreach command [dict get $commands $os] {
-            puts "$command"
-        }
-        puts ""
-        foreach command [dict get $commands $os] {
-            puts [exec -ignorestderr -- {*}$command]
+            command {*}$command
         }
     } else {
-        puts {Sorry, automatic dependency installation is not supported on\
-                your OS. Please install the dependencies manually.}
-        exit 1
+        command-raw @echo [quote {Sorry, automatic dependency installation is\
+                not supported on your OS. Please install the dependencies\
+                manually.}]
+        command-raw @false
     }
 }
 
-# Clean up build artifacts.
+# Emit the commands to clean up the build artifacts.
 proc ::buildsys::clean {} {
     variable object
     variable output
-    file delete $object
-    file delete $output
+    command -rm $object
+    command -rm $output
 }
 
-# Run the test suite.
+# Emit the command to run the test suite.
 proc ::buildsys::test {} {
     variable path
-    exec -- tclsh [file join $path tests.tcl]
+    variable tclsh
+    command $tclsh [file join $path tests.tcl]
 }
 
-# Copy file $from to $to.
+# Emit the command to copy file $from to $to.
 proc ::buildsys::copy {from to} {
-    puts "copying file $from to $to"
-    file copy $from $to
+    command cp $from $to
 }
 
-# Delete file or directory $path.
+# Emit the command to delete file or directory $path.
 proc ::buildsys::delete path {
-    if {[file exists $path]} {
-        puts "deleting $path"
-        file delete $path
-    } else {
-        puts "can't delete nonexistent path $path"
-    }
+    command -rm $path
 }
 
-# Write $content to $filename.
-proc ::buildsys::write-file {filename content {binary 0}} {
-    set file [open $filename w]
-    if {$binary} {
-        fconfigure $file -translation binary
-    } else {
-        puts "writing to $filename the following content:"
-        puts "------\n$content\n------"
-    }
-    puts -nonewline $file $content
-    close $file
+# Emit the command to write the text $content to $filename. This is crude and
+# may not work for arbitrary text.
+proc ::buildsys::write-file {filename content} {
+    command-raw echo -e [string map [list \n \\n] [quote $content]] > \
+            [quote $filename]
 }
 
-# Functionality common to both the installation and the uninstallation
-# operation.
+# Functionality common to both the install and the uninstall procedure.
 proc ::buildsys::set-install-paths {customInstallPath} {
     uplevel 1 {
         variable path
@@ -190,11 +236,12 @@ proc ::buildsys::set-install-paths {customInstallPath} {
     }
 }
 
-# Install the extension library and the corresponding Tcl package.
+# Emit the commands to install the extension library and the corresponding Tcl
+# package.
 proc ::buildsys::install {{customInstallPath {}}} {
     set-install-paths $customInstallPath
 
-    file mkdir $packageInstallPath
+    command mkdir -p $packageInstallPath
     copy [file join $path $output] $libInstallPath
 
     # Copy extra files.
@@ -230,7 +277,8 @@ proc ::buildsys::install {{customInstallPath {}}} {
     write-file [file join $packageInstallPath pkgIndex.tcl] $content
 }
 
-# Remove the extension library and the corresponding Tcl package.
+# Emit the commands to remove the extension library and the corresponding Tcl
+# package.
 proc ::buildsys::uninstall {{customInstallPath {}}} {
     set-install-paths $customInstallPath
 
@@ -239,11 +287,11 @@ proc ::buildsys::uninstall {{customInstallPath {}}} {
     foreach {package filename} $extras {
         delete [file join $packageInstallPath $filename]
     }
-    delete [file join $packageInstallPath]
+    command rmdir [file join $packageInstallPath]
 }
 
 # Check if we were run as the primary script by the interpreter. Code from
-# http://tcl.wiki/40097.
+# https://tcl.wiki/40097.
 proc ::buildsys::main-script? {} {
     global argv0
 
@@ -262,5 +310,8 @@ proc ::buildsys::main-script? {} {
 if {[::buildsys::main-script?]} {
     set ::buildsys::path \
             [file dirname [file dirname [file normalize $argv0/___]]]
-    buildsys {*}$argv
+    set makefile [buildsys generate-makefile {*}$argv]
+    set ch [open Makefile w]
+    puts -nonewline $ch $makefile
+    close $ch
 }

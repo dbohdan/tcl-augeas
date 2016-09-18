@@ -8,4 +8,5 @@ addons:
       - pkg-config
       - libaugeas-dev
 script:
+  - tclsh configure.tcl
   - make test

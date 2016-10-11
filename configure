@@ -310,6 +310,7 @@ proc ::buildsys::main-script? {} {
 if {[::buildsys::main-script?]} {
     set ::buildsys::path \
             [file dirname [file dirname [file normalize $argv0/___]]]
+    puts "[file tail [info script]]: creating Makefile"
     set makefile [buildsys generate-makefile {*}$argv]
     set ch [open Makefile w]
     puts -nonewline $ch $makefile

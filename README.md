@@ -28,8 +28,8 @@ Fedora/CentOS, openSUSE, FreeBSD 10+ and OpenBSD. To install them the build
 script will use `apt-get`, `yum`, `zypper`, `pkg` and `pkg_add` respectively.
 
 ```sh
-# Create a Makefile for your system.
-tclsh configure.tcl
+# Write a Makefile for your system.
+tclsh configure
 # Install the dependencies automatically on a supported OS.
 sudo make deps
 # Build and test.
@@ -45,8 +45,8 @@ e.g., `/usr/share/tcl8.6/tcl-augeas`. To install both the shared library and
 the package to `/custom/path/` instead use the command
 
 ```sh
-tclsh configure.tcl -destdir /custom/path/
-sudo make install # Or just `make install` depending on the destination path.
+tclsh configure -destdir /custom/path/
+sudo make install # Or just `make install` depending on the destination.
 ```
 
 ## API

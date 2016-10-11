@@ -28,27 +28,13 @@ namespace eval ::buildsys {
 }
 
 # Generate and return the contents of a makefile for tcl-augeas.
-proc ::buildsys::generate-makefile args {
+proc ::buildsys::generate-makefile {libInstallPath packageInstallPath} {
     variable libraryFilename
     variable makefile
     variable output
     variable tclsh
 
     set makefile {}
-
-    if {[llength $args] % 2 == 1} {
-        error "the arguments should be a dictionary (\"$args\" given)"
-    }
-    if {[dict exists $args -destdir]} {
-        set customInstallPath [dict get $args -destdir]
-        dict unset args -destdir
-    } else {
-        set customInstallPath {}
-    }
-    if {[dict size $args] > 0} {
-        error "unknown options: $args; should be\
-                \"[dict get [info frame 0] proc] ?-destdir PATH?\""
-    }
 
     target all test
     target $output tcl-augeas.c
@@ -60,9 +46,9 @@ proc ::buildsys::generate-makefile args {
     target test $output
     test
     target install $output
-    install $customInstallPath
+    install $libInstallPath $packageInstallPath
     target uninstall
-    uninstall $customInstallPath
+    uninstall $libInstallPath $packageInstallPath
     target .PHONY {all clean deps test install uninstall}
     return $makefile
 }
@@ -220,26 +206,12 @@ proc ::buildsys::write-file {filename content} {
             [quote $filename]
 }
 
-# Functionality common to both the install and the uninstall procedure.
-proc ::buildsys::set-install-paths {customInstallPath} {
-    uplevel 1 {
-        variable path
-        variable output
-        variable extras
-        if {$customInstallPath ne ""} {
-            set packageInstallPath $customInstallPath
-            set libInstallPath $customInstallPath
-        } else {
-            variable packageInstallPath
-            variable libInstallPath
-        }
-    }
-}
-
 # Emit the commands to install the extension library and the corresponding Tcl
 # package.
-proc ::buildsys::install {{customInstallPath {}}} {
-    set-install-paths $customInstallPath
+proc ::buildsys::install {libInstallPath packageInstallPath} {
+    variable extras
+    variable output
+    variable path
 
     command mkdir -p $packageInstallPath
     copy [file join $path $output] $libInstallPath
@@ -279,8 +251,9 @@ proc ::buildsys::install {{customInstallPath {}}} {
 
 # Emit the commands to remove the extension library and the corresponding Tcl
 # package.
-proc ::buildsys::uninstall {{customInstallPath {}}} {
-    set-install-paths $customInstallPath
+proc ::buildsys::uninstall {libInstallPath packageInstallPath} {
+    variable extras
+    variable output
 
     delete [file join $libInstallPath $output]
     delete [file join $packageInstallPath pkgIndex.tcl]
@@ -307,12 +280,34 @@ proc ::buildsys::main-script? {} {
     }
 }
 
-if {[::buildsys::main-script?]} {
+proc ::buildsys::main {argv0 argv} {
     set ::buildsys::path \
             [file dirname [file dirname [file normalize $argv0/___]]]
+
+    if {[llength $argv] % 2 == 1} {
+        error "the arguments should be a dictionary (\"$args\" given)"
+    }
+    if {[dict exists $argv -destdir]} {
+        set libInstallPath [dict get $argv -destdir]
+        set packageInstallPath $libInstallPath
+        dict unset argv -destdir
+    } else {
+        variable libInstallPath
+        variable packageInstallPath
+    }
+    if {[dict size $argv] > 0} {
+        error "unknown options: $argv; should be\
+                \"[dict get [info frame 0] proc] ?-destdir PATH?\""
+    }
+
     puts "[file tail [info script]]: creating Makefile"
-    set makefile [buildsys generate-makefile {*}$argv]
+    set makefile [buildsys generate-makefile \
+            $libInstallPath $packageInstallPath]
     set ch [open Makefile w]
     puts -nonewline $ch $makefile
     close $ch
+}
+
+if {[::buildsys::main-script?]} {
+    ::buildsys::main $argv0 $argv
 }

@@ -202,8 +202,8 @@ proc ::buildsys::delete path {
 # Emit the command to write the text $content to $filename. This is crude and
 # may not work for arbitrary text.
 proc ::buildsys::write-file {filename content} {
-    command-raw echo -e [string map [list \n \\n] [quote $content]] > \
-            [quote $filename]
+    command-raw echo [string map [list \n \\n] [quote $content]] \
+            | sed [quote {s/\\n/\n/g}] > [quote $filename]
 }
 
 # Emit the commands to install the extension library and the corresponding Tcl

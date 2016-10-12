@@ -287,17 +287,17 @@ proc ::buildsys::main {argv0 argv} {
     if {[llength $argv] % 2 == 1} {
         error "the arguments should be a dictionary (\"$args\" given)"
     }
-    if {[dict exists $argv -destdir]} {
-        set libInstallPath [dict get $argv -destdir]
+    if {[dict exists $argv --destdir]} {
+        set libInstallPath [dict get $argv --destdir]
         set packageInstallPath $libInstallPath
-        dict unset argv -destdir
+        dict unset argv --destdir
     } else {
         variable libInstallPath
         variable packageInstallPath
     }
     if {[dict size $argv] > 0} {
         error "unknown options: $argv; should be\
-                \"[dict get [info frame 0] proc] ?-destdir PATH?\""
+                \"[dict get [info frame 0] proc] ?--destdir PATH?\""
     }
 
     puts "[file tail [info script]]: creating Makefile"

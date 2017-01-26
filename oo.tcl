@@ -101,4 +101,4 @@ proc ::augeas::oo::new {root {loadpath ""} {flags 0} {debug 0}} {
     }
 }
 
-package provide augeas::oo 0.2.0
+package provide augeas::oo 0.3.0

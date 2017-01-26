@@ -79,14 +79,27 @@ namespace eval ::augeas::tests {
         set quota [::augeas::get $id "/files/etc/wgetrc/quota"]
         set tries [::augeas::get $id "/files/etc/wgetrc/tries"]
         ::augeas::save $id
+        lappend result [list $count $quota $tries]
+
+        set f [open [file join [pwd] "test/etc/wgetrc"]]
+        lappend result [read $f]
+        close $f
 
         ::augeas::set $id "/files/etc/wgetrc/quota" inf
         ::augeas::set $id {/files/etc/wgetrc/#comment[1]} Comment
         ::augeas::save $id
 
+        set f [open [file join [pwd] "test/etc/wgetrc"]]
+        lappend result [read $f]
+        close $f
+
         ::augeas::close $id
-        return [list $count $quota $tries]
-    } -result [list 3 20 20]
+        return $result
+    } -result [list \
+            {3 20 20} \
+            "# 20\nquota = 20\ntries = 20\n" \
+            "# Comment\nquota = inf\ntries = 20\n" \
+    ]
 
     tcltest::test test4 {insert, mv and rm} \
             -constraints simplevarsAvailable \

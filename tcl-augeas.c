@@ -66,8 +66,6 @@ struct AugeasData
     Tcl_HashTable table;
 };
 
-#define AUG_CDATA ((struct AugeasData *) cdata)
-
 /* Functions */
 
 static augeas *

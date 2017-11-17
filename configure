@@ -264,7 +264,7 @@ proc ::buildsys::uninstall {libInstallPath packageInstallPath} {
 }
 
 # Check if we were run as the primary script by the interpreter. Code from
-# https://tcl.wiki/40097.
+# https://wiki.tcl-lang.org/40097.
 proc ::buildsys::main-script? {} {
     global argv0
 

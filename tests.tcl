@@ -293,6 +293,7 @@ namespace eval ::augeas::tests {
         return $result
     } -result [list 3 20 20 1 {0 0} {21 27} {21 33}]
 
+    tcltest::cleanupTests
     # Exit with nonzero status if there are failed tests.
     if {$::tcltest::numTests(Failed) > 0} {
         exit 1

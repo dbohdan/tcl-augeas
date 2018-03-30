@@ -136,6 +136,22 @@ An optional object-oriented API wrapper is available in the package
 * `$objName match path` -> list of matches
 
 
+## FAQ
+
+### How do I reload the whole tree or part of it?
+
+```tcl
+::augeas::rm $token /files ;# or /files/path
+::augeas::load $token
+```
+
+### How do I see the error message for the latest error?
+
+```tcl
+::augeas::get $token /augeas/error
+```
+
+
 ## License
 
 MIT. See the file [`LICENSE`](LICENSE).

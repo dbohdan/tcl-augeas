@@ -461,7 +461,8 @@ Span_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_OK;
     } else {
         Tcl_SetObjResult(interp,
-                Tcl_NewStringObj("path not in a file or doesn't exist", -1));
+                Tcl_NewStringObj("path not in a file or doesn't exist, or"
+                                 "spans aren't enabled", -1));
 
         return TCL_ERROR;
     }

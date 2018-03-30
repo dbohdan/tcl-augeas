@@ -150,7 +150,7 @@ Init_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
         return TCL_ERROR;
     }
 
-    sprintf(token, NS "::%d", aug_data->counter++);
+    (sprintf)(token, NS "::%d", aug_data->counter++);
     hPtr = Tcl_CreateHashEntry(&aug_data->table, token, &isNew);
     Tcl_SetHashValue(hPtr, (ClientData) aug);
 

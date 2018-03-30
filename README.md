@@ -14,6 +14,7 @@ The current version of tcl-augeas has been tested to build and run with Augeas
 * CentOS 6.9
 * CentOS 7.4
 * Debian 8.10
+* FreeBSD 11.0-RELEASE
 * OpenBSD 6.2
 * Ubuntu 12.04.5
 * Ubuntu 16.04.4

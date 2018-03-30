@@ -9,7 +9,7 @@
 /* Package information. */
 
 #define PACKAGE "augeas"
-#define VERSION "0.3.0"
+#define VERSION "0.4.0"
 
 /* Namespace for the extension. */
 

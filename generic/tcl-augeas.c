@@ -289,7 +289,7 @@ Get_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_ERROR;
     } else {
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("node not found", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_PATH, -1));
 
         return TCL_ERROR;
     }
@@ -602,7 +602,7 @@ Rm_Cmd(ClientData cdata, Tcl_Interp *interp, int objc, Tcl_Obj *const objv[])
 
         return TCL_ERROR;
     } else { /* aug_result < 0 */
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("invalid path", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_PATH, -1));
 
         return TCL_ERROR;
     }
@@ -650,7 +650,7 @@ Rename_Cmd(ClientData cdata, Tcl_Interp *interp,
 
         return TCL_ERROR;
     } else { /* aug_result < 0 */
-        Tcl_SetObjResult(interp, Tcl_NewStringObj("invalid path", -1));
+        Tcl_SetObjResult(interp, Tcl_NewStringObj(ERROR_PATH, -1));
 
         return TCL_ERROR;
     }

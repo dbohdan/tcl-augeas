@@ -6,7 +6,6 @@
  */
 #include <augeas.h>
 #include <tcl.h>
-
 /* Package information. */
 
 #define PACKAGE "augeas"

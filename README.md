@@ -5,49 +5,61 @@
 This Tcl C extension provides bindings for [Augeas](http://augeas.net/), a
 configuration editing tool.
 
+
 ## Installation
 
-tcl-augeas has been tested to build and run with Augeas 0.10
-through 1.5 on the following operating systems:
+The current version of tcl-augeas has been tested to build and run with Augeas
+0.10 through 1.8 on these operating systems:
 
-* Fedora 21-23
-* CentOS 6.5
-* CentOS 7.0
-* openSUSE 13.1
-* openSUSE Tumbleweed (20160709)
-* Ubuntu 12.04
-* Ubuntu 14.04
-* FreeBSD 10.1
-* OpenBSD 5.6
+* CentOS 6.9
+* CentOS 7.4
+* Debian 8.10
+* OpenBSD 6.2
+* Ubuntu 12.04.5
+* Ubuntu 16.04.4
 
-You will need Tcl 8.5 or 8.6 already installed on your system and available as
-`tclsh` to build tcl-augeas.
+### Dependencies
 
-Dependencies for tcl-augeas can be installed automatically on Debian/Ubuntu,
-Fedora/CentOS, openSUSE, FreeBSD 10+ and OpenBSD. To install them the build
-script will use `apt-get`, `yum`, `zypper`, `pkg` and `pkg_add` respectively.
+You will need to install following packages to build tcl-augeas.
+
+#### Debian/Ubuntu
 
 ```sh
-# Write a Makefile for your system.
-tclsh configure
-# Install the dependencies automatically on a supported OS.
-sudo make deps
-# Build and test.
+sudo apt install -y build-essential libaugeas-dev pkg-config tcl-dev
+```
+
+#### Fedora/CentOS
+
+```sh
+sudo yum install -y augeas-devel gcc make pkgconfig tcl-devel
+```
+
+#### openSUSE
+
+```sh
+sudo zypper install -y augeas-devel gcc make pkgconfig tcl-devel
+```
+
+#### FreeBSD
+
+```sh
+sudo pkg install -y augeas pkgconf tcl
+```
+
+#### OpenBSD
+
+```sh
+sudo pkg_add augeas
+```
+
+### Building and installing the package
+
+```sh
+./configure
 make test
-# Install the package.
 sudo make install
 ```
 
-By default the shared library is installed to
-[`libdir,runtime`](https://wiki.tcl-lang.org/11825), e.g., `/usr/lib64`, and
-the package is installed to the subdirectory `tcl-augeas` in
-`scriptdir,runtime`, e.g., `/usr/share/tcl8.6/tcl-augeas`. To install both
-the shared library and the package to `/custom/path/` instead use the command
-
-```sh
-tclsh configure --destdir /custom/path/
-sudo make install # Or just `make install` depending on the destination.
-```
 
 ## API
 
@@ -70,7 +82,9 @@ The commands tcl-augeas provides mirror the
 * `::augeas::rename token src lbl` -> number of nodes renamed
 * `::augeas::match token path` -> list of matches
 
-In addition to the obvious errors like missing arguments an error is also
+#### Errors
+
+In addition to the obvious errors like missing arguments, an error is also
 generated when
 
 * An invalid token is given to any command that expects a token;
@@ -80,11 +94,11 @@ generated when
 * `rm` changes no nodes;
 * `rename` changes no nodes.
 
-## OO wrapper
+### OO wrapper
 
 An optional object-oriented API wrapper is available in the package
-`augeas::oo`. It requires TclOO or Snit 2 to use. (The former ships with Tcl 8.6
-while the latter is part of Tcllib.) If both are available TclOO is used.
+`augeas::oo`. It requires either TclOO or Snit 2. The former ships with Tcl
+8.6; the latter is part of Tcllib. If both are available TclOO is used.
 
 * `::augeas::oo::new root ?loadpath? ?flags?` -> (objName)
 * `$objName destroy` -> (nothing)
@@ -100,6 +114,13 @@ while the latter is part of Tcllib.) If both are available TclOO is used.
 * `$objName rename src lbl` -> number of nodes renamed
 * `$objName match path` -> list of matches
 
+
 ## License
 
-MIT.
+MIT. See the file [`LICENSE`](LICENSE).
+
+`configure.ac`, `Makefile.in`, `pkgIndex.tcl.in` are derived from the
+[Sample TEA Extension](https://core.tcl.tk/sampleextension/dir?ci=tip).
+`tclconfig/tcl.m4` comes from the
+[tclconfig repository](https://core.tcl.tk/tclconfig/dir?ci=tip).
+See the file [`tea-license.terms`](tea-license.terms) for their license.

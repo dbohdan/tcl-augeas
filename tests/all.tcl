@@ -7,7 +7,8 @@
 package require tcltest
 
 namespace eval ::augeas::tests {
-    variable path [file dirname [file dirname [file normalize $argv0/___]]]
+    variable me [file dirname [file dirname [file normalize $argv0/___]]]
+    variable path [file dirname $me]
     variable setup [list apply {{path} {
         lappend ::auto_path $path
         package require augeas
@@ -52,7 +53,7 @@ namespace eval ::augeas::tests {
             -constraints simplevarsAvailable \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test] "" 0]
+        set id [::augeas::init [file join [pwd] tests] "" 0]
         set value [::augeas::get $id "/files/etc/wgetrc/quota"]
         ::augeas::close $id
         return $value
@@ -62,7 +63,7 @@ namespace eval ::augeas::tests {
             -constraints simplevarsAvailable \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test] "" 0]
+        set id [::augeas::init [file join [pwd] tests] "" 0]
         ::augeas::set $id "/files/etc/wgetrc/quota" inf
         ::augeas::save $id
         ::augeas::close $id
@@ -74,14 +75,14 @@ namespace eval ::augeas::tests {
             -setup $setup \
             -body {
         set result {}
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         set count [::augeas::setm $id "/files/etc/wgetrc" * 20]
         set quota [::augeas::get $id "/files/etc/wgetrc/quota"]
         set tries [::augeas::get $id "/files/etc/wgetrc/tries"]
         ::augeas::save $id
         lappend result [list $count $quota $tries]
 
-        set f [open [file join [pwd] "test/etc/wgetrc"]]
+        set f [open [file join [pwd] "tests/etc/wgetrc"]]
         lappend result [read $f]
         close $f
 
@@ -89,7 +90,7 @@ namespace eval ::augeas::tests {
         ::augeas::set $id {/files/etc/wgetrc/#comment[1]} Comment
         ::augeas::save $id
 
-        set f [open [file join [pwd] "test/etc/wgetrc"]]
+        set f [open [file join [pwd] "tests/etc/wgetrc"]]
         lappend result [read $f]
         close $f
 
@@ -107,7 +108,7 @@ namespace eval ::augeas::tests {
             -body {
         set result {}
 
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         ::augeas::insert $id "/files/etc/wgetrc/quota" foo 0
         ::augeas::mv $id "/files/etc/wgetrc/foo" "/files/etc/wgetrc/bar"
         lappend result [::augeas::rm $id "/files/etc/wgetrc/bar"]
@@ -125,7 +126,7 @@ namespace eval ::augeas::tests {
             -constraints simplevarsAvailable \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         set result [::augeas::match $id "/files/etc/wgetrc/*"]
         ::augeas::close $id
         return $result
@@ -138,7 +139,7 @@ namespace eval ::augeas::tests {
     tcltest::test test6 {double close} \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         ::augeas::close $id
         set error [catch {::augeas::close $id}]
         return $error
@@ -149,7 +150,7 @@ namespace eval ::augeas::tests {
             -body {
         set result {}
         for {set i 0} {$i < 3} {incr i} {
-            set id [::augeas::init [file join [pwd] test]]
+            set id [::augeas::init [file join [pwd] tests]]
             set n [namespace tail $id]
             lappend result [list integer [string is integer -strict $n]]
             if {$i > 0} {
@@ -164,7 +165,7 @@ namespace eval ::augeas::tests {
     tcltest::test test8 {load} \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         ::augeas::set $id /augeas/load/IniFile/lens Puppet.lns
         ::augeas::set $id /augeas/load/IniFile/incl /etc/test.ini
         ::augeas::load $id
@@ -177,7 +178,7 @@ namespace eval ::augeas::tests {
     tcltest::test test9 {Httpd lens} \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         set basePath {/files/etc/httpd/httpd.conf/directive[2]}
         set result {}
         lappend result [::augeas::get $id $basePath]
@@ -190,7 +191,7 @@ namespace eval ::augeas::tests {
     tcltest::test test9 {Cron lens} \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         set basePath {/files/etc/crontab/entry[1]}
         set result {}
         lappend result [::augeas::get $id $basePath]
@@ -209,7 +210,7 @@ namespace eval ::augeas::tests {
         set ids {}
         while {!$error} {
             set error [catch {
-                lappend ids [::augeas::init [file join [pwd] test]]
+                lappend ids [::augeas::init [file join [pwd] tests]]
             }]
             puts $ids
             # A safeguard to avoid eating up all the available RAM.
@@ -229,7 +230,7 @@ namespace eval ::augeas::tests {
             -body {
         set result {}
 
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         ::augeas::set $id /augeas/span enable
         ::augeas::rm $id /files
         ::augeas::load $id
@@ -238,7 +239,7 @@ namespace eval ::augeas::tests {
 
         lappend result {*}[lrange $span 1 end]
 
-        set handle [open [file join [pwd] test/etc/httpd/httpd.conf]]
+        set handle [open [file join [pwd] tests/etc/httpd/httpd.conf]]
         set data [read $handle]
         close $handle
 
@@ -253,7 +254,7 @@ namespace eval ::augeas::tests {
             -constraints renameAvailable \
             -setup $setup \
             -body {
-        set id [::augeas::init [file join [pwd] test]]
+        set id [::augeas::init [file join [pwd] tests]]
         set count [::augeas::rename $id /files/etc/wgetrc/quota hello]
         set value [::augeas::get $id /files/etc/wgetrc/hello]
         ::augeas::close $id
@@ -267,7 +268,7 @@ namespace eval ::augeas::tests {
             -body {
         package require augeas::oo
 
-        set obj [::augeas::oo::new [file join [pwd] test]]
+        set obj [::augeas::oo::new [file join [pwd] tests]]
         set result {}
 
         lappend result [$obj setm "/files/etc/wgetrc" * 20]

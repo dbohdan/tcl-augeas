@@ -1,6 +1,7 @@
 # tcl-augeas
 
-[![Build Status](https://travis-ci.org/dbohdan/tcl-augeas.svg)](https://travis-ci.org/dbohdan/tcl-augeas)
+[![Travis CI build status](https://travis-ci.org/dbohdan/tcl-augeas.svg)](https://travis-ci.org/dbohdan/tcl-augeas)
+[![Cirrus CI build status](https://api.cirrus-ci.com/github/dbohdan/tcl-augeas.svg)](https://cirrus-ci.com/github/dbohdan/tcl-augeas)
 
 This C extension for the Tcl interpreter provides bindings for
 [Augeas](http://augeas.net/), a configuration editing tool.
@@ -47,7 +48,7 @@ sudo zypper install -y augeas-devel gcc make pkgconfig tcl-devel
 #### FreeBSD
 
 ```sh
-sudo pkg install -y augeas pkgconf tcl
+sudo pkg install -y augeas pkgconf tcl86
 ```
 
 #### OpenBSD

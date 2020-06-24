@@ -1,7 +1,7 @@
 freebsd_instance:
-  image: freebsd-12-0-release-amd64
+  image: freebsd-12-1-release-amd64
 
 task:
   name: FreeBSD test
-  install_script: pkg install -y augeas pkgconf tcl86
+  install_script: pkg update -f && pkg install -y augeas pkgconf tcl86
   test_script: ./configure --with-tcl=/usr/local/lib/tcl8.6 && make test

@@ -27,7 +27,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([tclaugeas],[0.4.0])
+AC_INIT([tclaugeas],[0.5.0])
 
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([LIBXML2], [libxml-2.0])

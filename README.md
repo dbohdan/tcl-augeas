@@ -1,6 +1,5 @@
 # tcl-augeas
 
-[![Travis CI build status](https://travis-ci.org/dbohdan/tcl-augeas.svg)](https://travis-ci.org/dbohdan/tcl-augeas)
 [![Cirrus CI build status](https://api.cirrus-ci.com/github/dbohdan/tcl-augeas.svg)](https://cirrus-ci.com/github/dbohdan/tcl-augeas)
 
 This C extension for the Tcl interpreter provides bindings for

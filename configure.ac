@@ -27,7 +27,7 @@ dnl	to configure the system for the local environment.
 # so that we create the export library with the dll.
 #-----------------------------------------------------------------------
 
-AC_INIT([tclaugeas], [0.4.0])
+AC_INIT([tclaugeas],[0.4.0])
 
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([LIBXML2], [libxml-2.0])
@@ -194,4 +194,5 @@ TEA_PROG_TCLSH
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-AC_OUTPUT([Makefile pkgIndex.tcl])
+AC_CONFIG_FILES([Makefile pkgIndex.tcl])
+AC_OUTPUT

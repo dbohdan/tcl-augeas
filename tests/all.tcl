@@ -7,7 +7,7 @@
 package require tcltest
 
 namespace eval ::augeas::tests {
-    variable me [file dirname [file dirname [file normalize $argv0/___]]]
+    variable me [file dirname [file dirname [file normalize $::argv0/___]]]
     variable path [file dirname $me]
     variable setup [list apply {{path} {
         lappend ::auto_path $path
